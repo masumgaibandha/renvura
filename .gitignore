@@ -1,0 +1,22 @@
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+.env
+.env.local
+.env*.local
+
+.DS_Store
+Thumbs.db
+
+playwright-report/
+test-results/
+.playwright/
+coverage/
+
+# Third-party theme screenshots kept locally as design reference only.
+# See docs/LOCKED_DECISIONS.md D-05 and D-11 — inspiration, never redistributed.
+/assets/design-references/*.png

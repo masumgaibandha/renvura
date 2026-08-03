@@ -1,0 +1,163 @@
+{
+  "common": {
+    "brand": "Renvura",
+    "brandTagline": "Child-development materials, curated by an M.Ed. specialist.",
+    "skipToContent": "Skip to content",
+    "loading": "Loading",
+    "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "dismiss": "Dismiss"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "faq": "FAQ",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "languageLabel": "Language",
+    "switchToBangla": "Switch to Bangla",
+    "switchToEnglish": "Switch to English",
+    "themeLabel": "Theme",
+    "switchToLight": "Switch to light theme",
+    "switchToDark": "Switch to dark theme",
+    "menuLabel": "Menu"
+  },
+  "home": {
+    "metaTitle": "Renvura — Child development & play-based learning materials",
+    "metaDescription": "Renvura is a child-development and play-based learning brand for Bangladesh, curated by a specialist with fifteen years in early childhood development and inclusive education.",
+    "eyebrow": "Chosen by a child-development specialist",
+    "headline": "Every toy here earns its place.",
+    "subline": "Materials selected for how they help a child grow — not for how fast they sell.",
+    "ctaPrimary": "Read the founder's story",
+    "ctaSecondary": "Ask a question",
+    "curatorLabel": "Meet the curator",
+    "curatorName": "Abdullah Al Masum",
+    "curatorRole": "Founder, Renvura",
+    "curatorCredentials": "M.Ed., Institute of Education and Research, University of Dhaka · 15 years in early childhood care and development and inclusive education",
+    "principlesTitle": "How Renvura works",
+    "principleCurationTitle": "Chosen by a specialist",
+    "principleCurationBody": "Every item is selected by a child-development professional, on the basis of what supports a child's growth.",
+    "principleGuidanceTitle": "Guided by age and skill",
+    "principleGuidanceBody": "The catalogue is organised by age range and by development domain — fine motor, language and literacy, logic and maths, social-emotional, and STEM.",
+    "principleLanguageTitle": "In Bangla and English",
+    "principleLanguageBody": "The whole site reads in both languages, and the expert note on each item is written in Bangla first.",
+    "statusTitle": "The catalogue is being prepared",
+    "statusBody": "Product listings, expert notes and ordering are still in build. This page is the foundation of the site — nothing here is a live product offer. If you have a question in the meantime, please get in touch.",
+    "statusCta": "Contact Renvura"
+  },
+  "about": {
+    "metaTitle": "About Renvura",
+    "metaDescription": "Renvura is founded by Abdullah Al Masum, a child-development professional with an M.Ed. from the Institute of Education and Research, University of Dhaka.",
+    "title": "About Renvura",
+    "lead": "Renvura is a child-development and play-based learning brand for Bangladesh. It is built on a simple idea: the person choosing the materials should understand how children actually learn.",
+    "founderTitle": "The founder",
+    "founderBody": "Renvura is founded by Abdullah Al Masum, a child-development professional with fifteen years of work in early childhood care and development and in inclusive education. He holds an M.Ed. from the Institute of Education and Research at the University of Dhaka.",
+    "approachTitle": "The approach",
+    "approachBody": "Renvura is expertise-first. Guidance comes before the sale: material is organised by the age it suits and by the skill it builds, and each item carries a note explaining what it helps a child practise. The focus is early childhood, with the range extending through age twelve.",
+    "buildTitle": "What is live today",
+    "buildBody": "This site is in active build. The brand foundation, both languages and the contact route are live. The catalogue, ordering and the expert journal are being built in sequence and will open as each is ready.",
+    "contactCta": "Get in touch"
+  },
+  "contact": {
+    "metaTitle": "Contact Renvura",
+    "metaDescription": "Contact Renvura by phone, email or the enquiry form.",
+    "title": "Contact",
+    "lead": "Questions about materials, an order, or working together — send a message and Renvura will reply directly.",
+    "detailsTitle": "Direct contact",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "formTitle": "Send a message",
+    "nameLabel": "Your name",
+    "namePlaceholder": "Full name",
+    "phoneLabelField": "Phone number",
+    "phonePlaceholder": "01XXXXXXXXX",
+    "emailLabelField": "Email (optional)",
+    "emailPlaceholder": "you@example.com",
+    "subjectLabel": "Subject",
+    "subjectPlaceholder": "What is this about?",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Write your message",
+    "submit": "Send message",
+    "submitting": "Sending",
+    "successToast": "Message sent. Renvura will get back to you.",
+    "errorToast": "The message could not be sent. Please try again.",
+    "rateLimitToast": "Too many messages sent. Please try again later.",
+    "successTitle": "Thank you",
+    "successBody": "Your message has been received. Renvura will reply to the contact details you gave.",
+    "sendAnother": "Send another message",
+    "errors": {
+      "nameRequired": "Please enter your name",
+      "nameTooLong": "That name is too long",
+      "phoneRequired": "Please enter your phone number",
+      "phoneInvalid": "Please enter a valid Bangladeshi mobile number",
+      "emailInvalid": "Please enter a valid email address",
+      "subjectRequired": "Please enter a subject",
+      "subjectTooLong": "That subject is too long",
+      "messageRequired": "Please write a message",
+      "messageTooShort": "Please write a little more",
+      "messageTooLong": "That message is too long",
+      "rejected": "Your message could not be accepted. Please try again.",
+      "server": "Something went wrong at our end. Please try again."
+    }
+  },
+  "faq": {
+    "metaTitle": "Frequently asked questions",
+    "title": "Frequently asked questions",
+    "pendingTitle": "This page is not ready yet",
+    "pendingBody": "The answers here will cover ordering, delivery, returns and product safety. They are not published yet, because Renvura will not state a delivery time, a returns term or a safety claim before it is confirmed and accurate. Until then, please ask directly.",
+    "contactCta": "Ask a question"
+  },
+  "policies": {
+    "pendingLabel": "In preparation",
+    "pendingTitle": "This policy is not published yet",
+    "pendingBody": "This page will carry Renvura's actual policy wording. It is being prepared and reviewed before publication, and no draft or placeholder text is shown here in the meantime. For anything you need to know now, please contact Renvura directly.",
+    "contactCta": "Contact Renvura",
+    "privacy": {
+      "title": "Privacy Policy",
+      "summary": "How customer data is collected, used and protected."
+    },
+    "returns": {
+      "title": "Return, Refund & Replacement Policy",
+      "summary": "Conditions, timeframes and the process for returns and replacements."
+    },
+    "shipping": {
+      "title": "Shipping & Delivery Policy",
+      "summary": "Delivery charges, coverage areas and delivery times."
+    },
+    "terms": {
+      "title": "Terms & Conditions",
+      "summary": "The rules covering use of the site, ordering and liability."
+    },
+    "childSafety": {
+      "title": "Child Safety & Material Disclaimer",
+      "summary": "Age-appropriateness, materials, and supervision guidance."
+    }
+  },
+  "footer": {
+    "tagline": "Child-development materials, curated by an M.Ed. specialist.",
+    "location": "Dhaka, Bangladesh.",
+    "exploreHeading": "Renvura",
+    "policiesHeading": "Policies",
+    "contactHeading": "Contact",
+    "rights": "© {year} Renvura. All rights reserved."
+  },
+  "notFound": {
+    "metaTitle": "Page not found",
+    "code": "404",
+    "title": "This page could not be found",
+    "body": "The page you were looking for does not exist, or it has moved.",
+    "home": "Go to the homepage",
+    "about": "About Renvura",
+    "contact": "Contact"
+  },
+  "error": {
+    "metaTitle": "Something went wrong",
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred at our end. You can try again, or get in touch if it keeps happening.",
+    "retry": "Try again",
+    "contact": "Contact Renvura",
+    "home": "Go to the homepage"
+  }
+}

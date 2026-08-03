@@ -1,0 +1,21 @@
+# Cross-platform line endings and binary handling.
+#
+# The team works on Windows; CI and Vercel build on Linux. Without these rules
+# git stores whatever the author's editor produced, and a teammate on another OS
+# sees every line of a file as changed.
+
+# Normalise all text: LF in the repository and LF on checkout, every platform.
+* text=auto eol=lf
+
+# Windows scripts must keep CRLF — cmd.exe and PowerShell mis-parse LF-only files.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binary assets: never diffed, never line-ending converted, never merged.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.pdf  binary
+*.ico  binary

@@ -1,0 +1,211 @@
+@import '@heroui/react/styles';
+
+@source '../';
+
+/* next-themes writes `class="light" | "dark"` on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+ * Renvura brand tokens — Project Specification v1.8 §2.1
+ *
+ * Authority Navy  #11253C  light: text/surfaces   · dark: background
+ * Premium Gold    #CDAF80  accent in BOTH themes
+ * Linen Cream     #F7F1E5  light: background      · dark: text
+ * Slate Gray      #A5AAB5  secondary text, borders, informational lines
+ *
+ * These override HeroUI v3's semantic variables, so every HeroUI component
+ * inherits the brand without per-component overrides.
+ *
+ * CONTRAST RULE (§2.1): Premium Gold is never a text colour on Linen Cream.
+ * Gold is a filled block (with navy text) or text on navy. `--accent-ink` is
+ * the theme-safe "accent text" colour: navy on light, gold on dark. There is
+ * no token that can put gold text on cream, and `tests/unit/brand-contrast`
+ * fails the build if `text-accent` / `text-brand-gold` appear in source.
+ * ------------------------------------------------------------------------ */
+
+@layer theme {
+  :root,
+  .light,
+  .default,
+  [data-theme='light'],
+  [data-theme='default'] {
+    color-scheme: light;
+
+    --brand-navy: #11253c;
+    --brand-gold: #cdaf80;
+    --brand-cream: #f7f1e5;
+    --brand-slate: #a5aab5;
+
+    --background: #f7f1e5;
+    --foreground: #11253c;
+
+    --surface: #fffdf7;
+    --surface-foreground: #11253c;
+    --surface-secondary: #f2ead9;
+    --surface-secondary-foreground: #11253c;
+    --surface-tertiary: #ebe1cd;
+    --surface-tertiary-foreground: #11253c;
+
+    --overlay: #fffdf7;
+    --overlay-foreground: #11253c;
+
+    /* Slate at full strength is unreadable on cream; secondary text is slate
+     * mixed toward navy, keeping the neutral hue while clearing AA. */
+    --muted: #4a5a6e;
+
+    --default: #efe7d6;
+    --default-foreground: #11253c;
+
+    --accent: #cdaf80;
+    --accent-foreground: #11253c;
+    --accent-ink: #11253c;
+    /* HeroUI derives this as a gold/navy mix, which lands as gold-ish text on
+     * cream in soft variants. Pinned to navy to hold the §2.1 contrast rule. */
+    --accent-soft-foreground: #11253c;
+
+    --field-background: #fffdf7;
+    --field-foreground: #11253c;
+    --field-placeholder: #77849a;
+    --field-border: #dcd2be;
+    --field-border-width: 1px;
+
+    --success: #2f6b4f;
+    --success-foreground: #ffffff;
+    --warning: #8a5a17;
+    --warning-foreground: #ffffff;
+    --danger: #a92f22;
+    --danger-foreground: #ffffff;
+
+    --border: #e3d9c5;
+    --separator: #e9e0ce;
+    --focus: #11253c;
+    --link: #11253c;
+
+    --backdrop: rgb(17 37 60 / 0.55);
+  }
+
+  .dark,
+  [data-theme='dark'] {
+    color-scheme: dark;
+
+    --brand-navy: #11253c;
+    --brand-gold: #cdaf80;
+    --brand-cream: #f7f1e5;
+    --brand-slate: #a5aab5;
+
+    --background: #11253c;
+    --foreground: #f7f1e5;
+
+    --surface: #16304c;
+    --surface-foreground: #f7f1e5;
+    --surface-secondary: #1b3a5a;
+    --surface-secondary-foreground: #f7f1e5;
+    --surface-tertiary: #204268;
+    --surface-tertiary-foreground: #f7f1e5;
+
+    --overlay: #16304c;
+    --overlay-foreground: #f7f1e5;
+
+    --muted: #a5aab5;
+
+    --default: #1b3a5a;
+    --default-foreground: #f7f1e5;
+
+    --accent: #cdaf80;
+    --accent-foreground: #11253c;
+    --accent-ink: #cdaf80;
+    --accent-soft-foreground: #cdaf80;
+
+    --field-background: #16304c;
+    --field-foreground: #f7f1e5;
+    --field-placeholder: #8c97a6;
+    --field-border: #2b4362;
+    --field-border-width: 1px;
+
+    --success: #6fbf95;
+    --success-foreground: #11253c;
+    --warning: #e0ac5c;
+    --warning-foreground: #11253c;
+    --danger: #e88b7f;
+    --danger-foreground: #11253c;
+
+    --border: #2b4362;
+    --separator: #24394f;
+    --focus: #cdaf80;
+    --link: #f7f1e5;
+
+    --backdrop: rgb(6 15 25 / 0.7);
+  }
+}
+
+@theme inline {
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-cream: var(--brand-cream);
+  --color-brand-slate: var(--brand-slate);
+
+  --color-canvas: var(--background);
+  --color-ink: var(--foreground);
+  --color-ink-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-secondary);
+  --color-surface-3: var(--surface-tertiary);
+  --color-line: var(--border);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--accent-foreground);
+  --color-accent-ink: var(--accent-ink);
+
+  --font-display: var(--font-lora), Georgia, 'Times New Roman', serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-bengali: var(--font-noto-bengali), var(--font-manrope), ui-sans-serif, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Unlayered so it wins over the `font-display` utility: Lora carries no Bengali
+ * glyphs, so the whole Bangla locale renders in Noto Sans Bengali. */
+html[lang='bn'] body,
+html[lang='bn'] .font-display,
+html[lang='bn'] .font-sans {
+  font-family: var(--font-noto-bengali), var(--font-manrope), ui-sans-serif, sans-serif;
+}
+
+/* Latin runs inside Bangla pages (brand name, phone numbers, email) keep the
+ * UI face for legibility. */
+html[lang='bn'] .latin {
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+}
