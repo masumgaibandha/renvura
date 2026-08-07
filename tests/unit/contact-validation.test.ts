@@ -13,7 +13,6 @@ const valid = {
   email: 'parent@example.com',
   subject: 'Question about age ranges',
   message: 'Which materials suit a three year old who is just starting to speak?',
-  locale: 'bn' as const,
 };
 
 describe('contactFormSchema', () => {
@@ -62,8 +61,10 @@ describe('contactFormSchema', () => {
     });
   });
 
-  it('rejects an unknown locale', () => {
-    expect(contactFormSchema.safeParse({ ...valid, locale: 'fr' }).success).toBe(false);
+  it('carries no locale field — the site is one English-first page set (D-02)', () => {
+    const result = contactFormSchema.safeParse(valid);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).not.toHaveProperty('locale');
   });
 
   it('rejects over-long fields', () => {

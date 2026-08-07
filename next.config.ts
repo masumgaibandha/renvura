@@ -1,8 +1,9 @@
 import type { NextConfig } from 'next';
-import createNextIntlPlugin from 'next-intl/plugin';
 
-const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
-
+/**
+ * No i18n plugin: Renvura is one English-first page set with Bangla applied per
+ * content run, so there is no locale routing to configure (D-02, D-03).
+ */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -11,4 +12,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;

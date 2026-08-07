@@ -1,7 +1,6 @@
 'use client';
 
 import { Button, Modal, type useOverlayState } from '@heroui/react';
-import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 
 type OverlayState = ReturnType<typeof useOverlayState>;
@@ -19,12 +18,12 @@ export type ConfirmModalProps = {
 };
 
 /**
- * The single confirmation dialog primitive — Project Specification v1.8 §5.10,
- * which specifies HeroUI Modal so no extra dialog dependency is added.
+ * The single confirmation dialog primitive. HeroUI's Modal is used deliberately
+ * so no extra dialog dependency is added (D-04).
  *
- * Phase 1 has no destructive action to confirm; this is the primitive the
- * later phases build on (cancel order, remove from cart, delete address,
- * admin destructive actions).
+ * Phase 1 has no destructive action to confirm; this is the primitive the later
+ * phases build on (remove from cart, cancel order, delete address, admin
+ * destructive actions).
  */
 export function ConfirmModal({
   state,
@@ -36,8 +35,6 @@ export function ConfirmModal({
   isPending = false,
   onConfirm,
 }: ConfirmModalProps) {
-  const t = useTranslations('common');
-
   return (
     <Modal state={state}>
       <Modal.Backdrop>
@@ -53,14 +50,14 @@ export function ConfirmModal({
             ) : null}
             <Modal.Footer>
               <Button variant="outline" isDisabled={isPending} onPress={state.close}>
-                {cancelLabel ?? t('cancel')}
+                {cancelLabel ?? 'Cancel'}
               </Button>
               <Button
                 variant={isDestructive ? 'danger' : 'primary'}
                 isDisabled={isPending}
                 onPress={() => void onConfirm()}
               >
-                {confirmLabel ?? t('confirm')}
+                {confirmLabel ?? 'Confirm'}
               </Button>
             </Modal.Footer>
           </Modal.Dialog>

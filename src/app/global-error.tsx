@@ -4,8 +4,10 @@ import { useEffect } from 'react';
 
 /**
  * Replaces the root layout when rendering itself fails, so it cannot rely on
- * providers, fonts or translations. Both languages are inlined deliberately —
- * there is no locale context available at this point.
+ * providers, fonts or the design tokens. Everything is inlined.
+ *
+ * English carries the interface; the Bangla line is marked `lang="bn"` so it is
+ * announced correctly even without the stylesheet (D-02).
  */
 export default function GlobalError({
   error,
@@ -19,7 +21,7 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <html lang="bn">
+    <html lang="en">
       <body
         style={{
           margin: 0,
@@ -43,10 +45,13 @@ export default function GlobalError({
             }}
           />
           <h1 style={{ fontSize: '1.75rem', marginTop: '1.5rem', marginBottom: '0.5rem' }}>
-            কিছু একটা সমস্যা হয়েছে
+            Something went wrong
           </h1>
-          <p style={{ margin: '0 0 1.5rem', color: '#4a5a6e' }}>
-            Something went wrong. Please try again.
+          <p style={{ margin: '0 0 0.5rem', color: '#4a5a6e' }}>
+            The page could not be loaded. Please try again.
+          </p>
+          <p lang="bn" style={{ margin: '0 0 1.5rem', color: '#4a5a6e' }}>
+            পৃষ্ঠাটি লোড করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।
           </p>
           <button
             type="button"
@@ -63,7 +68,7 @@ export default function GlobalError({
               cursor: 'pointer',
             }}
           >
-            আবার চেষ্টা করুন · Try again
+            Try again
           </button>
           <p style={{ marginTop: '2rem', fontSize: '0.875rem', color: '#4a5a6e' }}>
             <a href="mailto:hello@renvura.com" style={{ color: '#11253c' }}>

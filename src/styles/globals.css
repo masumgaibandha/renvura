@@ -2,25 +2,34 @@
 
 @source '../';
 
-/* next-themes writes `class="light" | "dark"` on <html>. */
+/* Retained for the unused dark token block below; no toggle ships (D-07). */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
- * Renvura brand tokens — Project Specification v1.8 §2.1
+ * Renvura brand tokens — docs/STOREFRONT_DESIGN_DIRECTION.md §3, D-06.
  *
- * Authority Navy  #11253C  light: text/surfaces   · dark: background
- * Premium Gold    #CDAF80  accent in BOTH themes
- * Linen Cream     #F7F1E5  light: background      · dark: text
- * Slate Gray      #A5AAB5  secondary text, borders, informational lines
+ * CORE (official, unchanged)
+ *   Authority Navy  #11253C  headings, navigation, footer, important text
+ *   Premium Gold    #CDAF80  primary CTA fills and premium highlights, sparingly
+ *   Linen Cream     #F7F1E5  primary storefront background
+ *   Slate Gray      #A5AAB5  borders, dividers, disabled states — never body text
+ *
+ * SUPPORTING (added by D-06 — the core four are not child-friendly alone)
+ *   Soft Sky #D9EEF5 · Soft Mint #E2EED8 · Soft Blush #F6DAD8
+ *   Soft Lavender #E7DFF4 · Soft Sunshine #F8E6A8
+ *   Secondary text #4A5A6E  (official; Slate at full strength is ~1.9:1 on cream)
  *
  * These override HeroUI v3's semantic variables, so every HeroUI component
  * inherits the brand without per-component overrides.
  *
- * CONTRAST RULE (§2.1): Premium Gold is never a text colour on Linen Cream.
- * Gold is a filled block (with navy text) or text on navy. `--accent-ink` is
- * the theme-safe "accent text" colour: navy on light, gold on dark. There is
- * no token that can put gold text on cream, and `tests/unit/brand-contrast`
- * fails the build if `text-accent` / `text-brand-gold` appear in source.
+ * CONTRAST RULE: Premium Gold is never a text colour on Linen Cream. Gold is a
+ * filled block (with navy text) or text on navy. `--accent-ink` is the safe
+ * "accent text" colour. `tests/unit/brand-contrast` fails the build if
+ * `text-accent` or a raw gold hex appears as a text colour in `src/`.
+ *
+ * LAUNCH THEME: light/cream only (D-07). The `.dark` block below is retained,
+ * deliberately unused, as a starting point for possible post-launch work. No
+ * component may depend on a theme switch existing — there is no toggle.
  * ------------------------------------------------------------------------ */
 
 @layer theme {
@@ -36,6 +45,16 @@
     --brand-cream: #f7f1e5;
     --brand-slate: #a5aab5;
 
+    /* Supporting pastels — category cards, age pills, promotional surfaces,
+     * badges and subtle illustration. Navy is the only text colour used on
+     * them; each clears AA comfortably. They support navy/gold/cream and never
+     * replace them. */
+    --soft-sky: #d9eef5;
+    --soft-mint: #e2eed8;
+    --soft-blush: #f6dad8;
+    --soft-lavender: #e7dff4;
+    --soft-sunshine: #f8e6a8;
+
     --background: #f7f1e5;
     --foreground: #11253c;
 
@@ -49,8 +68,8 @@
     --overlay: #fffdf7;
     --overlay-foreground: #11253c;
 
-    /* Slate at full strength is unreadable on cream; secondary text is slate
-     * mixed toward navy, keeping the neutral hue while clearing AA. */
+    /* Official secondary text colour (D-06). Slate at full strength is ~1.9:1
+     * on cream and is reserved for borders, dividers and disabled states. */
     --muted: #4a5a6e;
 
     --default: #efe7d6;
@@ -144,6 +163,12 @@
   --color-brand-cream: var(--brand-cream);
   --color-brand-slate: var(--brand-slate);
 
+  --color-soft-sky: var(--soft-sky);
+  --color-soft-mint: var(--soft-mint);
+  --color-soft-blush: var(--soft-blush);
+  --color-soft-lavender: var(--soft-lavender);
+  --color-soft-sunshine: var(--soft-sunshine);
+
   --color-canvas: var(--background);
   --color-ink: var(--foreground);
   --color-ink-muted: var(--muted);
@@ -196,16 +221,32 @@
   }
 }
 
-/* Unlayered so it wins over the `font-display` utility: Lora carries no Bengali
- * glyphs, so the whole Bangla locale renders in Noto Sans Bengali. */
-html[lang='bn'] body,
-html[lang='bn'] .font-display,
-html[lang='bn'] .font-sans {
+/* ---------------------------------------------------------------------------
+ * Bangla typography — applied per run, never per page (D-02).
+ *
+ * The site is one English-first page set. Bangla appears inside content —
+ * detailed explanations, usage instructions, expert notes, safety warnings —
+ * as marked-up runs. `<html lang>` stays `en`; each Bangla run carries
+ * `lang="bn"` and this class, so the Bengali subset loads only where it is
+ * actually used. This replaces the old `html[lang='bn']` page-wide switch.
+ *
+ * Unlayered so it wins over the `font-display` / `font-sans` utilities: Lora
+ * carries no Bengali glyphs.
+ *
+ * Bengali counters read smaller than Latin at the same nominal size, so Bangla
+ * runs are nudged up slightly where they sit beside English.
+ * ------------------------------------------------------------------------ */
+.bn,
+[lang='bn'] {
   font-family: var(--font-noto-bengali), var(--font-manrope), ui-sans-serif, sans-serif;
+  font-size: 1.05em;
+  line-height: 1.75;
 }
 
-/* Latin runs inside Bangla pages (brand name, phone numbers, email) keep the
- * UI face for legibility. */
-html[lang='bn'] .latin {
+/* Latin runs nested inside a Bangla run (brand name, phone, email, prices)
+ * keep the UI face for legibility. */
+.bn .latin,
+[lang='bn'] .latin {
   font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.952em; /* undoes the 1.05em bump above */
 }

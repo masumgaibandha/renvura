@@ -1,8 +1,7 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose';
-import { locales } from '@/i18n/routing';
 
 /**
- * Contact enquiries — Project Specification v1.8 §5.8.
+ * Contact enquiries — docs/PROJECT_SPECIFICATION.md §6 (journey J6).
  *
  * The stored document is authoritative. Email notification is best-effort on
  * top of it, so a delivery failure never loses an enquiry. There is no admin UI
@@ -15,7 +14,6 @@ const contactSubmissionSchema = new Schema(
     email: { type: String, trim: true, maxlength: 254 },
     subject: { type: String, required: true, trim: true, maxlength: 150 },
     message: { type: String, required: true, trim: true, maxlength: 4000 },
-    locale: { type: String, required: true, enum: [...locales] },
     status: {
       type: String,
       required: true,

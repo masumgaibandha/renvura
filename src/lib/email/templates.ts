@@ -1,5 +1,3 @@
-import type { Locale } from '@/i18n/routing';
-
 export type ContactNotification = {
   id: string;
   name: string;
@@ -7,7 +5,6 @@ export type ContactNotification = {
   email?: string;
   subject: string;
   message: string;
-  locale: Locale;
   receivedAt: Date;
 };
 
@@ -27,7 +24,6 @@ export function renderContactNotification(
     `Name:     ${notification.name}`,
     `Phone:    ${notification.phone}`,
     `Email:    ${notification.email ?? '—'}`,
-    `Language: ${notification.locale}`,
     `Received: ${notification.receivedAt.toISOString()}`,
     `Ref:      ${notification.id}`,
     ``,

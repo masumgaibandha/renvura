@@ -1,29 +1,22 @@
 import type { Metadata } from 'next';
-import { locales, type Locale } from '@/i18n/routing';
 import { siteUrl } from '@/lib/env';
-import { openGraphLocales, siteConfig } from '@/lib/site';
+import { siteConfig } from '@/lib/site';
 
 /**
- * Absolute URL for a locale-relative path.
- * `/` → `https://site/bn`, `/about` → `https://site/bn/about`.
+ * One page, one URL, one canonical.
+ *
+ * There is no locale prefix and no `hreflang` alternate set: Renvura is a
+ * single English-first hybrid-language site (D-02, D-03). Bangla appears inside
+ * content as marked-up runs, never as a separate page.
  */
-export function absoluteUrl(locale: Locale, path: string): string {
-  const normalised = path === '/' ? '' : path.startsWith('/') ? path : `/${path}`;
-  return `${siteUrl}/${locale}${normalised}`;
-}
 
-/** hreflang map for a path: every locale plus `x-default` pointing at Bangla. */
-export function alternateLanguages(path: string): Record<string, string> {
-  const languages: Record<string, string> = {};
-  for (const locale of locales) {
-    languages[locale] = absoluteUrl(locale, path);
-  }
-  languages['x-default'] = absoluteUrl('bn', path);
-  return languages;
+/** Absolute URL for a site-root-relative path. `/` → `https://site`. */
+export function absoluteUrl(path: string): string {
+  if (path === '/') return siteUrl;
+  return `${siteUrl}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
 export type BuildMetadataOptions = {
-  locale: Locale;
   path: string;
   title: string;
   description?: string;
@@ -32,29 +25,25 @@ export type BuildMetadataOptions = {
 };
 
 export function buildMetadata({
-  locale,
   path,
   title,
   description,
   noindex = false,
 }: BuildMetadataOptions): Metadata {
-  const url = absoluteUrl(locale, path);
+  const url = absoluteUrl(path);
 
   return {
     metadataBase: new URL(siteUrl),
     title,
     description,
-    alternates: {
-      canonical: url,
-      languages: alternateLanguages(path),
-    },
+    alternates: { canonical: url },
     robots: noindex
       ? { index: false, follow: false, googleBot: { index: false, follow: false } }
       : { index: true, follow: true },
     openGraph: {
       type: 'website',
       siteName: siteConfig.name,
-      locale: openGraphLocales[locale],
+      locale: siteConfig.openGraphLocale,
       url,
       title,
       description,

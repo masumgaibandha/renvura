@@ -1,8 +1,7 @@
 'use client';
 
-import { useLinkStatus } from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import { useEffect, type ComponentProps, type ReactNode } from 'react';
-import { Link } from '@/i18n/navigation';
 import { endNavigation, startNavigation } from '@/components/layout/route-progress-store';
 
 function NavigationReporter() {
@@ -20,8 +19,11 @@ function NavigationReporter() {
 type AppLinkProps = ComponentProps<typeof Link> & { children: ReactNode };
 
 /**
- * Locale-aware link that also feeds the global route-progress bar.
- * Use this for every internal link.
+ * Internal link that feeds the global route-progress bar.
+ *
+ * Plain `next/link` under the hood — there is no locale prefixing to apply
+ * (D-03). Use this for every internal link so navigation always shows progress
+ * on a slow connection.
  */
 export function AppLink({ children, ...props }: AppLinkProps) {
   return (

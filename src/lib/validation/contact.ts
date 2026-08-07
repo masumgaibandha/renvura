@@ -1,10 +1,9 @@
 import { z } from 'zod';
-import { locales } from '@/i18n/routing';
 
 /**
- * Validation messages are stable *codes*, not sentences. The client maps each
- * code onto `contact.errors.<code>` so the same schema serves both languages
- * and can run identically on the server.
+ * Validation messages are stable *codes*, not sentences, so the same schema
+ * runs identically on the client and the server and the wording lives in one
+ * place (`CONTACT_ERRORS` below).
  */
 
 /** Bangladeshi mobile numbers: optional +88, then 01[3-9] and eight digits. */
@@ -28,10 +27,28 @@ export const contactFormSchema = z.object({
     .min(1, 'messageRequired')
     .min(10, 'messageTooShort')
     .max(4000, 'messageTooLong'),
-  locale: z.enum(locales),
 });
 
 export type ContactFormValues = z.infer<typeof contactFormSchema>;
+
+/** Human wording for each validation code. English — the UI language (D-02). */
+export const CONTACT_ERRORS: Record<string, string> = {
+  nameRequired: 'Please enter your name',
+  nameTooLong: 'That name is too long',
+  phoneRequired: 'Please enter your phone number',
+  phoneInvalid: 'Please enter a valid Bangladeshi mobile number',
+  emailInvalid: 'Please enter a valid email address',
+  subjectRequired: 'Please enter a subject',
+  subjectTooLong: 'That subject is too long',
+  messageRequired: 'Please enter a message',
+  messageTooShort: 'Please write a little more so we can help',
+  messageTooLong: 'That message is too long',
+};
+
+export function contactErrorMessage(code: string | undefined): string | undefined {
+  if (!code) return undefined;
+  return CONTACT_ERRORS[code] ?? 'Please check this field';
+}
 
 /** Field name of the honeypot input. Hidden from users, tempting to bots. */
 export const HONEYPOT_FIELD = 'website';

@@ -1,12 +1,11 @@
 'use client';
 
 import { Button, FieldError, Input, Label, Spinner, TextArea, TextField } from '@heroui/react';
-import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import toast from 'react-hot-toast';
-import type { Locale } from '@/i18n/routing';
 import {
   HONEYPOT_FIELD,
+  contactErrorMessage,
   contactFormSchema,
   fieldErrorsFrom,
 } from '@/lib/validation/contact';
@@ -29,9 +28,6 @@ type ApiResponse = {
 };
 
 export function ContactForm() {
-  const t = useTranslations('contact');
-  const locale = useLocale() as Locale;
-
   const [values, setValues] = useState(emptyValues);
   const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -64,7 +60,7 @@ export function ContactForm() {
     event.preventDefault();
     if (submitting) return;
 
-    const parsed = contactFormSchema.safeParse({ ...values, locale });
+    const parsed = contactFormSchema.safeParse(values);
     if (!parsed.success) {
       setErrors(fieldErrorsFrom(parsed.error));
       return;
@@ -90,24 +86,24 @@ export function ContactForm() {
       if (response.ok && result.ok) {
         setValues(emptyValues);
         setSubmitted(true);
-        toast.success(t('successToast'));
+        toast.success('Message sent. We will reply soon.');
         return;
       }
 
       if (response.status === 429) {
-        toast.error(t('rateLimitToast'));
+        toast.error('Too many messages just now. Please try again shortly.');
         return;
       }
 
       if (result.code === 'validation' && result.fieldErrors) {
         setErrors(result.fieldErrors as Partial<Record<FieldName, string>>);
-        toast.error(t('errorToast'));
+        toast.error('Message could not be sent. Please check the form.');
         return;
       }
 
-      toast.error(t('errorToast'));
+      toast.error('Message could not be sent. Please try again, or call us.');
     } catch {
-      toast.error(t('errorToast'));
+      toast.error('Message could not be sent. Please try again, or call us.');
     } finally {
       setSubmitting(false);
     }
@@ -120,8 +116,10 @@ export function ContactForm() {
         tabIndex={-1}
         className="rounded-2xl border border-line bg-surface p-6 outline-none"
       >
-        <h2 className="font-display text-xl text-ink">{t('successTitle')}</h2>
-        <p className="mt-2 text-sm text-ink-muted">{t('successBody')}</p>
+        <h2 className="font-display text-xl text-ink">Message sent</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          Thank you — we have your message and will reply as soon as we can.
+        </p>
         <Button
           variant="outline"
           className="mt-5"
@@ -130,7 +128,7 @@ export function ContactForm() {
             startedAt.current = Date.now();
           }}
         >
-          {t('sendAnother')}
+          Send another message
         </Button>
       </div>
     );
@@ -160,9 +158,9 @@ export function ContactForm() {
         autoComplete="name"
         className="w-full"
       >
-        <Label>{t('nameLabel')}</Label>
-        <Input placeholder={t('namePlaceholder')} />
-        {errors.name ? <FieldError>{t(`errors.${errors.name}`)}</FieldError> : null}
+        <Label>Your name</Label>
+        <Input placeholder="Your full name" />
+        {errors.name ? <FieldError>{contactErrorMessage(errors.name)}</FieldError> : null}
       </TextField>
 
       <TextField
@@ -175,9 +173,9 @@ export function ContactForm() {
         autoComplete="tel"
         className="w-full"
       >
-        <Label>{t('phoneLabelField')}</Label>
-        <Input inputMode="tel" placeholder={t('phonePlaceholder')} className="latin" />
-        {errors.phone ? <FieldError>{t(`errors.${errors.phone}`)}</FieldError> : null}
+        <Label>Phone number</Label>
+        <Input inputMode="tel" placeholder="01XXXXXXXXX" className="latin" />
+        {errors.phone ? <FieldError>{contactErrorMessage(errors.phone)}</FieldError> : null}
       </TextField>
 
       <TextField
@@ -189,9 +187,9 @@ export function ContactForm() {
         autoComplete="email"
         className="w-full"
       >
-        <Label>{t('emailLabelField')}</Label>
-        <Input inputMode="email" placeholder={t('emailPlaceholder')} className="latin" />
-        {errors.email ? <FieldError>{t(`errors.${errors.email}`)}</FieldError> : null}
+        <Label>Email (optional)</Label>
+        <Input inputMode="email" placeholder="you@example.com" className="latin" />
+        {errors.email ? <FieldError>{contactErrorMessage(errors.email)}</FieldError> : null}
       </TextField>
 
       <TextField
@@ -202,9 +200,9 @@ export function ContactForm() {
         isInvalid={Boolean(errors.subject)}
         className="w-full"
       >
-        <Label>{t('subjectLabel')}</Label>
-        <Input placeholder={t('subjectPlaceholder')} />
-        {errors.subject ? <FieldError>{t(`errors.${errors.subject}`)}</FieldError> : null}
+        <Label>Subject</Label>
+        <Input placeholder="What is this about?" />
+        {errors.subject ? <FieldError>{contactErrorMessage(errors.subject)}</FieldError> : null}
       </TextField>
 
       <TextField
@@ -215,19 +213,19 @@ export function ContactForm() {
         isInvalid={Boolean(errors.message)}
         className="w-full"
       >
-        <Label>{t('messageLabel')}</Label>
-        <TextArea rows={6} placeholder={t('messagePlaceholder')} />
-        {errors.message ? <FieldError>{t(`errors.${errors.message}`)}</FieldError> : null}
+        <Label>Message</Label>
+        <TextArea rows={6} placeholder="Tell us how we can help" />
+        {errors.message ? <FieldError>{contactErrorMessage(errors.message)}</FieldError> : null}
       </TextField>
 
       <Button type="submit" variant="primary" size="lg" fullWidth isDisabled={submitting}>
         {submitting ? (
           <span className="inline-flex items-center gap-2">
             <Spinner size="sm" aria-hidden="true" />
-            {t('submitting')}
+            Sending…
           </span>
         ) : (
-          t('submit')
+          'Send message'
         )}
       </Button>
     </form>

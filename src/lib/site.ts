@@ -1,83 +1,191 @@
-import type { Locale } from '@/i18n/routing';
-
 /**
- * Single registry of everything that exists in Phase 1.
+ * The single registry of everything that exists on the storefront.
  *
- * Navigation, the footer and the sitemap all read from here, so a link can
- * never point at a route that has not been built, and the sitemap can never
- * advertise a page whose content is still pending.
+ * Navigation, the footer, the sitemap and the tests all read from here, so a
+ * link can never point at a route that has not been built, and the sitemap can
+ * never advertise a page whose content is still pending.
+ *
+ * Source of truth: `docs/LOCKED_DECISIONS.md` (D-03 clean URLs, D-15 no dead
+ * controls) and `docs/PROJECT_SPECIFICATION.md` §5.4.
  */
 
 export const siteConfig = {
   name: 'Renvura',
-  /** Contact details — Project Specification v1.8 §5.8. */
+  /** Founder-supplied contact details. Never invent these. */
   phone: '01883-115898',
   phoneHref: 'tel:+8801883115898',
   email: 'hello@renvura.com',
   emailHref: 'mailto:hello@renvura.com',
-  locationEn: 'Dhaka, Bangladesh',
+  location: 'Dhaka, Bangladesh',
   ogImage: '/brand/banner-light.png',
+  /** Language declared on <html>. Bangla appears per run, never per page (D-02). */
+  htmlLang: 'en',
+  openGraphLocale: 'en_GB',
 } as const;
 
+/**
+ * `phase` records when a route becomes real. Only `built` routes may be linked
+ * to or listed anywhere in the UI — this is what mechanically enforces the
+ * "no dead links" rule (D-15 / §11.1.1). Later-phase routes are declared here
+ * so the structure is visible and reviewable, but they are filtered out of
+ * every consumer until the phase that builds them flips them to `built`.
+ */
+export type RoutePhase = 'built' | 'phase-2' | 'phase-3' | 'phase-4' | 'phase-5' | 'phase-9';
+
 export type SiteRoute = {
-  /** Locale-relative path, e.g. `/about`. */
+  /** Absolute path from the site root, e.g. `/about`. */
   path: string;
-  /** Key into the `nav` message namespace, when the route appears in navigation. */
-  navKey?: 'home' | 'about' | 'contact' | 'faq';
+  /** Label used in navigation and the footer. English (D-02). */
+  label: string;
+  phase: RoutePhase;
   /**
    * `false` for pages whose content is still being prepared. Those pages emit
    * `noindex, nofollow` and are excluded from the sitemap.
    */
   indexable: boolean;
   priority: number;
-  changeFrequency: 'monthly' | 'yearly';
+  changeFrequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  /** Which footer column the route belongs to, when it appears in the footer. */
+  footerColumn?: 'shop' | 'help' | 'company';
+  /** Shown in the header's primary navigation. */
+  inHeaderNav?: boolean;
 };
 
-export const siteRoutes = [
-  { path: '/', navKey: 'home', indexable: true, priority: 1, changeFrequency: 'monthly' },
-  { path: '/about', navKey: 'about', indexable: true, priority: 0.8, changeFrequency: 'monthly' },
-  { path: '/contact', navKey: 'contact', indexable: true, priority: 0.7, changeFrequency: 'yearly' },
-  // Content pending — see messages `faq.pending*` and `policies.pending*`.
-  { path: '/faq', navKey: 'faq', indexable: false, priority: 0.3, changeFrequency: 'yearly' },
-  { path: '/privacy', indexable: false, priority: 0.3, changeFrequency: 'yearly' },
-  { path: '/returns', indexable: false, priority: 0.3, changeFrequency: 'yearly' },
-  { path: '/shipping', indexable: false, priority: 0.3, changeFrequency: 'yearly' },
-  { path: '/terms', indexable: false, priority: 0.3, changeFrequency: 'yearly' },
-  { path: '/child-safety', indexable: false, priority: 0.3, changeFrequency: 'yearly' },
-] as const satisfies readonly SiteRoute[];
+export const siteRoutes: readonly SiteRoute[] = [
+  // --- Built in Phase 1 -----------------------------------------------------
+  {
+    path: '/',
+    label: 'Home',
+    phase: 'built',
+    indexable: true,
+    priority: 1,
+    changeFrequency: 'weekly',
+    inHeaderNav: true,
+  },
+  {
+    path: '/about',
+    label: 'About',
+    phase: 'built',
+    indexable: true,
+    priority: 0.8,
+    changeFrequency: 'monthly',
+    footerColumn: 'company',
+    inHeaderNav: true,
+  },
+  {
+    path: '/contact',
+    label: 'Contact',
+    phase: 'built',
+    indexable: true,
+    priority: 0.7,
+    changeFrequency: 'yearly',
+    footerColumn: 'help',
+    inHeaderNav: true,
+  },
+  // Content pending — real wording required before these are indexed (D-12).
+  {
+    path: '/faq',
+    label: 'FAQ',
+    phase: 'built',
+    indexable: false,
+    priority: 0.3,
+    changeFrequency: 'yearly',
+    footerColumn: 'help',
+    inHeaderNav: true,
+  },
+  {
+    path: '/shipping',
+    label: 'Shipping & Delivery',
+    phase: 'built',
+    indexable: false,
+    priority: 0.3,
+    changeFrequency: 'yearly',
+    footerColumn: 'help',
+  },
+  {
+    path: '/returns',
+    label: 'Returns & Refunds',
+    phase: 'built',
+    indexable: false,
+    priority: 0.3,
+    changeFrequency: 'yearly',
+    footerColumn: 'help',
+  },
+  {
+    path: '/child-safety',
+    label: 'Child Safety',
+    phase: 'built',
+    indexable: false,
+    priority: 0.3,
+    changeFrequency: 'yearly',
+    footerColumn: 'company',
+  },
+  {
+    path: '/privacy',
+    label: 'Privacy Policy',
+    phase: 'built',
+    indexable: false,
+    priority: 0.3,
+    changeFrequency: 'yearly',
+  },
+  {
+    path: '/terms',
+    label: 'Terms & Conditions',
+    phase: 'built',
+    indexable: false,
+    priority: 0.3,
+    changeFrequency: 'yearly',
+  },
 
-type SiteRouteEntry = (typeof siteRoutes)[number];
+  // --- Declared, not yet built ---------------------------------------------
+  // These are filtered out of navigation, the footer and the sitemap until the
+  // phase that builds them changes `phase` to 'built'. Listing them here keeps
+  // the commerce structure reviewable without shipping a dead link.
+  { path: '/products', label: 'All Products', phase: 'phase-2', indexable: true, priority: 0.9, changeFrequency: 'daily', footerColumn: 'shop' },
+  { path: '/collections', label: 'Collections', phase: 'phase-2', indexable: true, priority: 0.7, changeFrequency: 'weekly', footerColumn: 'shop' },
+  { path: '/search', label: 'Search', phase: 'phase-3', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
+  { path: '/offers', label: 'Offers', phase: 'phase-3', indexable: true, priority: 0.7, changeFrequency: 'weekly', footerColumn: 'shop' },
+  { path: '/cart', label: 'Cart', phase: 'phase-4', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
+  { path: '/checkout', label: 'Checkout', phase: 'phase-4', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
+  { path: '/track', label: 'Track Order', phase: 'phase-4', indexable: true, priority: 0.6, changeFrequency: 'monthly', footerColumn: 'help' },
+  { path: '/wishlist', label: 'Wishlist', phase: 'phase-4', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
+  { path: '/account', label: 'Account', phase: 'phase-5', indexable: false, priority: 0.3, changeFrequency: 'monthly' },
+  { path: '/blog', label: 'Articles', phase: 'phase-9', indexable: true, priority: 0.7, changeFrequency: 'weekly', footerColumn: 'company' },
+];
 
-/** Routes shown in the header and mobile menu, in order. */
-export const navRoutes = siteRoutes.filter(
-  (route): route is Extract<SiteRouteEntry, { navKey: string }> => 'navKey' in route,
+/** Only routes that actually exist right now. Everything else is invisible. */
+export const builtRoutes: readonly SiteRoute[] = siteRoutes.filter(
+  (route) => route.phase === 'built',
 );
 
-/** Footer policy column — Project Specification v1.8 §5.9. */
-export const policyRoutes = [
-  { path: '/privacy', key: 'privacy' },
-  { path: '/returns', key: 'returns' },
-  { path: '/shipping', key: 'shipping' },
-  { path: '/terms', key: 'terms' },
-  { path: '/child-safety', key: 'childSafety' },
+/** Header primary navigation, in registry order. */
+export const headerNavRoutes = builtRoutes.filter((route) => route.inHeaderNav === true);
+
+/** Footer columns, built from the registry so a column can never list a dead link. */
+export const footerColumns = [
+  { key: 'shop', heading: 'Shop' },
+  { key: 'help', heading: 'Help' },
+  { key: 'company', heading: 'Company' },
 ] as const;
 
-export type PolicyKey = (typeof policyRoutes)[number]['key'];
+export type FooterColumnKey = (typeof footerColumns)[number]['key'];
 
-/** Only indexable routes reach the sitemap. */
-export const sitemapRoutes = siteRoutes.filter((route) => route.indexable);
-
-export function isIndexable(path: string): boolean {
-  return siteRoutes.some((route) => route.path === path && route.indexable);
+export function footerRoutesFor(column: FooterColumnKey) {
+  return builtRoutes.filter((route) => route.footerColumn === column);
 }
 
-/** `bn` → `bn-BD` etc., for hreflang and Open Graph. */
-export const localeTags: Record<Locale, string> = {
-  bn: 'bn-BD',
-  en: 'en-GB',
-};
+/** The five legal/policy routes, for the footer's bottom bar. */
+export const policyRoutes = builtRoutes.filter((route) =>
+  ['/privacy', '/returns', '/shipping', '/terms', '/child-safety'].includes(route.path),
+);
 
-export const openGraphLocales: Record<Locale, string> = {
-  bn: 'bn_BD',
-  en: 'en_GB',
-};
+/** Only built *and* indexable routes reach the sitemap. */
+export const sitemapRoutes = builtRoutes.filter((route) => route.indexable);
+
+export function isIndexable(path: string): boolean {
+  return builtRoutes.some((route) => route.path === path && route.indexable);
+}
+
+export function isBuilt(path: string): boolean {
+  return builtRoutes.some((route) => route.path === path);
+}

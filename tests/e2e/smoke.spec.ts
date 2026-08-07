@@ -2,88 +2,140 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Phase 1 smoke tests, run against a production build on a mobile viewport —
- * the primary device profile for this market.
+ * the primary device profile for this market (D-14).
+ *
+ * These assert the Phase 1 revision's defining properties: clean unprefixed
+ * routes, no locale layer, a light-only storefront, honest pending pages, and
+ * — critically — no dead controls anywhere in the UI (D-15, §11.1.1).
  */
 
-test('root redirects to the Bangla locale', async ({ page }) => {
-  await page.goto('/');
-  await expect(page).toHaveURL(/\/bn$/);
-  await expect(page.locator('html')).toHaveAttribute('lang', 'bn');
+test('the site root serves the homepage directly, with no locale redirect', async ({ page }) => {
+  const response = await page.goto('/');
+
+  expect(response?.status()).toBe(200);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
-test('home renders server-side with brand, heading and footer contact', async ({ page }) => {
-  const response = await page.goto('/bn');
+test('home renders server-side with the product-first hero and footer contact', async ({
+  page,
+}) => {
+  const response = await page.goto('/');
   const html = (await response?.text()) ?? '';
 
-  // §7.1: full HTML from the server, never a client-only shell.
-  expect(html).toContain('শিশুর বিকাশে বিশেষজ্ঞের বাছাই');
+  // Full HTML from the server, never a client-only shell.
+  expect(html).toContain('Everything your child needs');
   expect(html).toContain('01883-115898');
 
-  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await expect(page.getByRole('link', { name: '01883-115898' })).toHaveAttribute(
-    'href',
-    'tel:+8801883115898',
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(
+    'Everything your child needs',
   );
-  await expect(page.getByRole('link', { name: 'hello@renvura.com' })).toHaveAttribute(
-    'href',
-    'mailto:hello@renvura.com',
-  );
+  await expect(
+    page.getByRole('contentinfo').getByRole('link', { name: '01883-115898' }),
+  ).toHaveAttribute('href', 'tel:+8801883115898');
+  await expect(
+    page.getByRole('contentinfo').getByRole('link', { name: 'hello@renvura.com' }),
+  ).toHaveAttribute('href', 'mailto:hello@renvura.com');
 });
 
-test('English locale serves its own content and canonical', async ({ page }) => {
-  await page.goto('/en');
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('earns its place');
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
-    'href',
-    /\/en$/,
-  );
+test('the founder is never the hero and sits below the product sections', async ({ page }) => {
+  await page.goto('/');
+
+  const h1 = await page.getByRole('heading', { level: 1 }).textContent();
+  expect(h1).not.toContain('Abdullah');
+
+  const founderY = await page
+    .getByText('Abdullah Al Masum')
+    .first()
+    .evaluate((node) => node.getBoundingClientRect().top + window.scrollY);
+  const heroY = await page
+    .getByRole('heading', { level: 1 })
+    .evaluate((node) => node.getBoundingClientRect().top + window.scrollY);
+
+  expect(founderY).toBeGreaterThan(heroY);
 });
 
-test('every page carries canonical and hreflang alternates', async ({ page }) => {
-  await page.goto('/bn/about');
-
-  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/bn\/about$/);
-  await expect(page.locator('link[rel="alternate"][hreflang="bn"]')).toHaveAttribute(
-    'href',
-    /\/bn\/about$/,
-  );
-  await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute(
-    'href',
-    /\/en\/about$/,
-  );
-  await expect(page.locator('link[rel="alternate"][hreflang="x-default"]')).toHaveAttribute(
-    'href',
-    /\/bn\/about$/,
-  );
+test('no locale routes exist any more', async ({ page }) => {
+  for (const path of ['/bn', '/en', '/bn/about', '/en/about']) {
+    const response = await page.goto(path);
+    expect(response?.status(), `${path} should not exist`).toBe(404);
+  }
 });
 
-test('language toggle switches locale and keeps the path', async ({ page }) => {
-  // Started from /en because the toggle's accessible names are themselves
-  // localised — on a Bangla page the label reads "বাংলায় দেখুন".
-  await page.goto('/en/about');
-  await page.getByRole('link', { name: 'Switch to Bangla' }).click();
-  await expect(page).toHaveURL(/\/bn\/about$/);
-  await expect(page.locator('html')).toHaveAttribute('lang', 'bn');
+test('every page carries a single canonical and no hreflang alternates', async ({ page }) => {
+  await page.goto('/about');
+
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/about$/);
+  await expect(page.locator('link[rel="alternate"][hreflang]')).toHaveCount(0);
 });
 
-test('theme toggle switches and persists across reload', async ({ page }) => {
-  await page.goto('/en');
-  await expect(page.locator('html')).toHaveClass(/light/);
+test('the page emits Organization structured data and nothing more', async ({ page }) => {
+  await page.goto('/');
 
-  await page.getByRole('button', { name: 'Switch to dark theme' }).click();
-  await expect(page.locator('html')).toHaveClass(/dark/);
+  const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
+  expect(blocks).toHaveLength(1);
 
-  await page.reload();
-  await expect(page.locator('html')).toHaveClass(/dark/);
+  const schema = JSON.parse(blocks[0] ?? '{}');
+  expect(schema['@type']).toBe('Organization');
+  // No product, review or business-location claims exist yet (D-12).
+  expect(blocks[0]).not.toContain('LocalBusiness');
+  expect(blocks[0]).not.toContain('"Product"');
+  expect(blocks[0]).not.toContain('AggregateRating');
+});
+
+test('there is no theme toggle and no language toggle', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('button', { name: /theme/i })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /switch to (bangla|english)/i })).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveClass(/dark/);
+});
+
+test('no link anywhere points at an unbuilt route', async ({ page }) => {
+  const unbuilt = [
+    '/products',
+    '/collections',
+    '/search',
+    '/offers',
+    '/cart',
+    '/checkout',
+    '/track',
+    '/wishlist',
+    '/account',
+    '/blog',
+  ];
+
+  for (const path of ['/', '/about', '/contact', '/faq', '/privacy']) {
+    await page.goto(path);
+    const hrefs = await page.locator('a[href]').evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('href') ?? ''),
+    );
+
+    for (const href of hrefs) {
+      expect(unbuilt, `${path} links to unbuilt route ${href}`).not.toContain(href);
+    }
+  }
+});
+
+test('every internal link resolves to a real page', async ({ page, request }) => {
+  await page.goto('/');
+  const hrefs = await page.locator('a[href^="/"]').evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('href') ?? ''),
+  );
+
+  const unique = [...new Set(hrefs)].filter((href) => !href.startsWith('//'));
+  expect(unique.length).toBeGreaterThan(2);
+
+  for (const href of unique) {
+    const response = await request.get(href);
+    expect(response.status(), `${href} is a dead link`).toBeLessThan(400);
+  }
 });
 
 test('contact form validates before it submits', async ({ page }) => {
-  await page.goto('/en/contact');
+  await page.goto('/contact');
 
   await page.getByRole('button', { name: 'Send message' }).click();
-
-  // Client-side validation blocks the request and shows an inline error.
   await expect(page.getByText('Please enter your name')).toBeVisible();
 
   await page.getByLabel('Your name').fill('A Parent');
@@ -92,45 +144,73 @@ test('contact form validates before it submits', async ({ page }) => {
   await expect(page.getByText('Please enter a valid Bangladeshi mobile number')).toBeVisible();
 });
 
-test('pending policy pages render and are excluded from indexing', async ({ page }) => {
-  await page.goto('/en/privacy');
+test('pending policy pages render honestly and stay out of the index', async ({ page }) => {
+  await page.goto('/privacy');
 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Privacy Policy');
   await expect(page.getByText('This policy is not published yet')).toBeVisible();
-  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
-    'content',
-    /noindex/,
-  );
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
 });
 
-test('sitemap lists both locales and omits pending pages', async ({ request }) => {
+test('sitemap lists clean URLs and omits pending pages', async ({ request }) => {
   const response = await request.get('/sitemap.xml');
   expect(response.status()).toBe(200);
 
   const xml = await response.text();
-  expect(xml).toContain('/bn/about');
-  expect(xml).toContain('/en/about');
+  expect(xml).toContain('/about');
+  expect(xml).not.toContain('/bn/');
+  expect(xml).not.toContain('/en/');
   expect(xml).not.toContain('/privacy');
   expect(xml).not.toContain('/faq');
+  // Routes that do not exist yet must never be advertised.
+  expect(xml).not.toContain('/products');
 });
 
-test('unknown routes render the branded 404', async ({ page }) => {
-  const response = await page.goto('/en/no-such-page');
+test('robots.txt is served', async ({ request }) => {
+  const response = await request.get('/robots.txt');
+  expect(response.status()).toBe(200);
+  expect(await response.text()).toContain('User-Agent');
+});
+
+test('unknown routes return a real 404 with the branded page', async ({ page }) => {
+  const response = await page.goto('/no-such-page');
+
   expect(response?.status()).toBe(404);
   await expect(page.getByText('This page could not be found')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Go to the homepage' })).toBeVisible();
 });
 
-test('mobile menu opens and navigates', async ({ page }) => {
-  await page.goto('/en');
+test('mobile menu opens, lists only built routes, and navigates', async ({ page }) => {
+  await page.goto('/');
 
   await page.getByRole('button', { name: 'Open menu' }).click();
-  // Scoped to the header: the footer carries a link with the same name.
-  const menuLink = page
-    .getByRole('banner')
-    .getByRole('link', { name: 'About', exact: true });
-  await expect(menuLink).toBeVisible();
 
-  await menuLink.click();
-  await expect(page).toHaveURL(/\/en\/about$/);
+  const menu = page.getByRole('navigation', { name: 'Mobile' });
+  await expect(menu).toBeVisible();
+
+  await menu.getByRole('link', { name: 'About', exact: true }).click();
+  await expect(page).toHaveURL(/\/about$/);
+});
+
+test('no horizontal overflow at 360px on any built route', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+
+  for (const path of [
+    '/',
+    '/about',
+    '/contact',
+    '/faq',
+    '/privacy',
+    '/returns',
+    '/shipping',
+    '/terms',
+    '/child-safety',
+    '/no-such-page',
+  ]) {
+    await page.goto(path);
+    const overflows = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    );
+    expect(overflows, `${path} scrolls horizontally at 360px`).toBe(false);
+  }
 });

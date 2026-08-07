@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
         email: parsed.data.email,
         subject: parsed.data.subject,
         message: parsed.data.message,
-        locale: parsed.data.locale,
         receivedAt: new Date(),
       });
 
