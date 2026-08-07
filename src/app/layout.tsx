@@ -2,10 +2,17 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { RouteProgress } from '@/components/layout/RouteProgress';
 import { Providers } from '@/components/providers';
 import { siteUrl } from '@/lib/env';
 import { fontVariables } from '@/lib/fonts';
+import {
+  bottomNavItems,
+  navPreviewEnabled,
+  resolveNav,
+  shouldRenderBottomNav,
+} from '@/lib/navigation';
 import { organizationSchema } from '@/lib/seo/schema';
 import { siteConfig } from '@/lib/site';
 import '@/styles/globals.css';
@@ -29,9 +36,19 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  // Bottom-nav items are route-gated only, so they need no storefront data.
+  const bottomNav = resolveNav(bottomNavItems, {}, navPreviewEnabled());
+  const showBottomNav = shouldRenderBottomNav(bottomNav);
+
   return (
     <html lang={siteConfig.htmlLang} className={fontVariables}>
-      <body className="flex min-h-dvh flex-col overflow-x-hidden bg-canvas text-ink">
+      {/* The bottom bar is fixed, so its height (plus the phone's safe area) is
+          reserved here — otherwise it would sit on top of the footer. */}
+      <body
+        className={`flex min-h-dvh flex-col overflow-x-hidden bg-canvas text-ink ${
+          showBottomNav ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0' : ''
+        }`}
+      >
         {/* Organization is the only structured data Phase 1 emits — every value
             in it is already true and published on this site (D-12). */}
         <script
@@ -52,6 +69,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             {children}
           </main>
           <Footer />
+          {showBottomNav ? <MobileBottomNav items={bottomNav} /> : null}
         </Providers>
       </body>
     </html>

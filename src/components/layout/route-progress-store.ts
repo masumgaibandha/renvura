@@ -2,9 +2,9 @@
  * Tiny external store counting in-flight link navigations.
  *
  * `AppLink` reports Next.js's `useLinkStatus` into this store and
- * `RouteProgress` renders the top-of-page bar from it — the navigation
- * progress indicator required by Project Specification v1.8 §5.8, with no
- * extra dependency.
+ * `RouteProgress` renders the top-of-page bar from it — part of the
+ * loading-state system Phase 1 retains (D-15 "Must be kept";
+ * `docs/PROJECT_SPECIFICATION.md` §11.1), with no extra dependency.
  */
 
 let pendingCount = 0;

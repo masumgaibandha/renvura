@@ -17,6 +17,11 @@ test-results/
 .playwright/
 coverage/
 
+# Demo catalogue media, staged out of assets/reference/products/ by
+# `npm run db:seed`. Regenerable, development-only, and must never ship in a
+# production deployment (D-08).
+/public/demo-products/
+
 # Third-party theme screenshots kept locally as design reference only.
 # See docs/LOCKED_DECISIONS.md D-05 and D-11 — inspiration, never redistributed.
 /assets/design-references/*.png

@@ -3,26 +3,32 @@
 import { Button } from '@heroui/react';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
-import { FiMenu, FiPhone, FiX } from 'react-icons/fi';
+import { FiChevronDown, FiMenu, FiPhone, FiX } from 'react-icons/fi';
 import { AppLink } from '@/components/ui/AppLink';
-import type { CategoryTile } from '@/lib/content/storefront';
-import { footerRoutesFor, headerNavRoutes, siteConfig } from '@/lib/site';
+import type { ResolvedNavItem } from '@/lib/navigation';
+import { footerRoutesFor, siteConfig } from '@/lib/site';
 
 /**
  * Mobile navigation drawer — design direction §5.2.
  *
- * Contains the primary navigation, the category tree when categories exist,
- * help routes and the support phone number. Every entry comes from the route
- * registry or from real category data, so the drawer can never list a route
- * that does not exist (D-15).
+ * Order: Shop · Categories · Shop by Age · Blog · About · Contact · Account ·
+ * Wishlist, then the built help routes, then the support number.
+ *
+ * Items arrive pre-filtered by `resolveNav`, so the drawer cannot list a
+ * destination that does not exist (D-15). Help routes are de-duplicated against
+ * that list — Contact belongs to both sets and must appear once.
+ *
+ * HeroUI supplies the trigger button; the panel is plain markup with Escape and
+ * focus return. No drawer library is introduced (D-04).
  */
-export function MobileMenu({ categories }: { categories: CategoryTile[] }) {
+export function MobileMenu({ items }: { items: ResolvedNavItem[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const helpRoutes = footerRoutesFor('help');
+  const shownHrefs = new Set(items.map((item) => item.href));
+  const helpRoutes = footerRoutesFor('help').filter((route) => !shownHrefs.has(route.path));
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +45,7 @@ export function MobileMenu({ categories }: { categories: CategoryTile[] }) {
   }, [open]);
 
   function linkClass(isActive: boolean) {
-    return `block rounded-lg px-4 py-3 text-base font-medium transition-colors ${
+    return `flex items-center justify-between rounded-lg px-4 py-3 text-base font-medium transition-colors ${
       isActive ? 'bg-surface-2 text-ink' : 'text-ink-muted hover:bg-surface-2'
     }`;
   }
@@ -66,42 +72,36 @@ export function MobileMenu({ categories }: { categories: CategoryTile[] }) {
         className="absolute inset-x-0 top-full max-h-[calc(100dvh-6.25rem)] overflow-y-auto border-b border-line bg-surface shadow-lg"
       >
         <nav aria-label="Mobile" className="p-2 pb-4">
-          <ul className="flex flex-col">
-            {headerNavRoutes.map((route) => (
-              <li key={route.path}>
-                <AppLink
-                  href={route.path}
-                  // Closed on click rather than in an effect on `pathname`,
-                  // which would cascade an extra render on every navigation.
-                  onClick={() => setOpen(false)}
-                  aria-current={pathname === route.path ? 'page' : undefined}
-                  className={linkClass(pathname === route.path)}
-                >
-                  {route.label}
-                </AppLink>
-              </li>
-            ))}
-          </ul>
-
-          {categories.length > 0 ? (
-            <div className="mt-2 border-t border-line pt-2">
-              <p className="px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">
-                Shop by category
-              </p>
-              <ul className="flex flex-col">
-                {categories.map((category) => (
-                  <li key={category.slug}>
+          {items.length > 0 ? (
+            <ul className="flex flex-col">
+              {items.map((item) => (
+                <li key={item.id}>
+                  {item.available ? (
                     <AppLink
-                      href={category.href}
+                      href={item.href}
+                      // Closed on click rather than in an effect on `pathname`,
+                      // which would cascade an extra render on every navigation.
                       onClick={() => setOpen(false)}
-                      className={linkClass(pathname === category.href)}
+                      aria-current={pathname === item.href ? 'page' : undefined}
+                      className={linkClass(pathname === item.href)}
                     >
-                      {category.name}
+                      {item.label}
+                      {item.hasDropdown ? (
+                        <FiChevronDown aria-hidden="true" className="size-4" />
+                      ) : null}
                     </AppLink>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      className="flex cursor-default items-center justify-between rounded-lg px-4 py-3 text-base font-medium text-ink-muted/50"
+                    >
+                      {item.label}
+                      <span className="text-xs font-normal">Coming soon</span>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
           ) : null}
 
           {helpRoutes.length > 0 ? (
@@ -115,6 +115,7 @@ export function MobileMenu({ categories }: { categories: CategoryTile[] }) {
                     <AppLink
                       href={route.path}
                       onClick={() => setOpen(false)}
+                      aria-current={pathname === route.path ? 'page' : undefined}
                       className={linkClass(pathname === route.path)}
                     >
                       {route.label}

@@ -7,6 +7,11 @@ would install `next@9.3.3`, a seven-major downgrade of the framework.
 **Date:** 2026-08-03 · **Node:** v22.23.1 · **npm:** 10.9.8 · **Result:** 3 high, 0 moderate,
 0 low.
 
+**Re-checked 2026-08-07** (Node v22.23.1 · npm 10.9.8) at the close of the Phase 1 revision.
+Still 3 high, 0 moderate, 0 low, and the same three packages. Two things changed and are
+triaged below: a **fourth** postcss advisory has been published, and the upgrade that clears
+all three findings is **now available as a stable release**.
+
 Removing `next-intl` in this revision cleared one moderate finding (it depended transitively
 on the vulnerable `next` range). The remaining three all originate inside Next.js's own nested
 dependencies.
@@ -18,6 +23,9 @@ dependencies.
 - GHSA-qx2v-qp2m-jg93 (XSS via unescaped `</style>` in stringify output)
 - GHSA-6g55-p6wh-862q (arbitrary file read via attacker-controlled `sourceMappingURL`)
 - GHSA-r28c-9q8g-f849 (path traversal in previous-source-map auto-loading)
+- GHSA-fxqj-rqcc-2cmp (**new on 2026-08-07** — incomplete fix of GHSA-6g55-p6wh-862q;
+  attacker-controlled `sourceMappingURL` still reads arbitrary `.map` files when `from` is
+  unset)
 
 **Where:** `node_modules/next/node_modules/postcss` — Next.js's bundled copy only.
 **Not** the project's own PostCSS: `@tailwindcss/postcss` and Vite both resolve `postcss@8.5.25`,
@@ -27,9 +35,14 @@ which is patched.
 Renvura's CSS is authored in-repo and compiled at build time; no user-supplied CSS reaches
 PostCSS. Exposure is build-time only, on a trusted input set.
 
-**Tracked:** resolved by a Next.js minor upgrade — the advisory range ends at
-`16.3.0-preview.7`, so a `16.3.x` stable release clears it. Scheduled as a standalone
-dependency change, not folded into a feature phase.
+**Tracked:** resolved by a Next.js minor upgrade. As of 2026-08-07 the advisory range ends at
+`16.3.0-preview.10` and **`next@16.3.0` stable is released**, so the upgrade this entry was
+waiting for is now available. It remains a standalone dependency change, not folded into a
+feature phase, and is **not** taken as part of the Phase 1 revision.
+
+The fourth advisory does not change the triage. The added file-read path has the same
+precondition as the other three — attacker-controlled CSS or source-map input — and Renvura's
+CSS is authored in-repo and compiled at build time.
 
 ### 2 · `sharp@0.34.5` — high — **accepted, tracked, with a hard deadline**
 

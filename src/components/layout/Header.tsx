@@ -1,86 +1,92 @@
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
+import { DesktopPrimaryNav } from '@/components/layout/DesktopPrimaryNav';
+import { HeaderControls } from '@/components/layout/HeaderControls';
 import { MobileMenu } from '@/components/layout/MobileMenu';
+import { DesktopSearchField, MobileSearchButton } from '@/components/layout/SearchField';
 import { AppLink } from '@/components/ui/AppLink';
 import { Container } from '@/components/ui/Container';
 import { Logo } from '@/components/ui/Logo';
-import { getCategoryTiles } from '@/lib/content/storefront';
-import { headerNavRoutes, isBuilt } from '@/lib/site';
+import { getAgeBands, getCategoryTiles } from '@/lib/content/storefront';
+import {
+  headerControlItems,
+  isSearchAvailable,
+  mobileMenuItems,
+  navPreviewEnabled,
+  primaryNavItems,
+  resolveNav,
+} from '@/lib/navigation';
 
 /**
  * Commerce header — design direction §5.2.
  *
- * Structure: announcement bar → sticky header (logo, categories, search,
- * account / wishlist / cart).
+ *   announcement bar
+ *   main bar    desktop: logo · search · account · wishlist · cart
+ *               mobile:  menu · logo · search · cart
+ *   primary nav desktop only: Shop · Categories · Shop by Age · Blog · About
  *
- * NO DEAD CONTROLS (D-15, §11.1.1). Search, account, wishlist and cart are
- * rendered **only** when the route behind them exists in the registry. In
- * Phase 1 none of them do, so none of them render — a customer never sees a
- * control that silently does nothing. When Phase 3 flips `/search` to `built`,
- * the search field appears here with no change to this file. The same applies
- * to the categories mega menu, which needs real categories (Phase 2).
+ * Availability comes from `@/lib/navigation`, which reads the route registry
+ * and the category/age datasets. This component performs no availability checks
+ * of its own — that is what keeps "no dead controls" (D-15, §11.1.1) enforced in
+ * one place rather than scattered through JSX.
+ *
+ * In Phase 1 almost every commerce destination is still unbuilt, so the header
+ * resolves to logo + About + a real contact action. Each item appears on its own
+ * as its phase flips it to `built`, with no change to this file.
  */
 export async function Header() {
-  const categories = await getCategoryTiles();
+  const [categories, ageBands] = await Promise.all([getCategoryTiles(), getAgeBands()]);
 
-  const showCategories = categories.length > 0;
-  const showSearch = isBuilt('/search');
-  const showAccount = isBuilt('/account');
-  const showWishlist = isBuilt('/wishlist');
-  const showCart = isBuilt('/cart');
-  const hasCommerceControls = showSearch || showAccount || showWishlist || showCart;
+  const context = {
+    hasCategories: categories.length > 0,
+    hasAgeBands: ageBands.length > 0,
+  };
+  // Server-only: the disabled preview must never be decided in a client bundle.
+  const preview = navPreviewEnabled();
+
+  const primaryNav = resolveNav(primaryNavItems, context, preview);
+  const menuItems = resolveNav(mobileMenuItems, context, preview);
+  const controls = resolveNav(headerControlItems, context, preview);
+  const searchAvailable = isSearchAvailable();
+
+  // Contact is not in the agreed primary row, so the header keeps one real
+  // action while the commerce controls do not exist yet. It steps aside as soon
+  // as they do.
+  const showContactCta = controls.length === 0 && !searchAvailable;
 
   return (
     <header className="sticky top-0 z-40 bg-canvas/95 backdrop-blur supports-[backdrop-filter]:bg-canvas/80">
       <AnnouncementBar />
 
       <div className="border-b border-line">
-        <Container className="flex h-16 items-center gap-3 sm:gap-5">
-          <MobileMenu categories={categories} />
+        <Container className="flex h-16 items-center gap-2 sm:gap-4">
+          <MobileMenu items={menuItems} />
 
-          <AppLink href="/" className="inline-flex min-h-11 shrink-0 items-center" aria-label="Renvura — home">
+          <AppLink
+            href="/"
+            className="inline-flex min-h-11 shrink-0 items-center"
+            aria-label="Renvura — home"
+          >
             <Logo width={128} height={39} priority />
           </AppLink>
 
-          <nav className="hidden md:block" aria-label="Primary">
-            <ul className="flex items-center gap-1">
-              {headerNavRoutes.map((route) => (
-                <li key={route.path}>
-                  <AppLink
-                    href={route.path}
-                    className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
-                  >
-                    {route.label}
-                  </AppLink>
-                </li>
-              ))}
-              {showCategories ? (
-                <li>
-                  <AppLink
-                    href="/products"
-                    className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-ink-muted transition-colors hover:text-ink"
-                  >
-                    Shop
-                  </AppLink>
-                </li>
-              ) : null}
-            </ul>
-          </nav>
+          <DesktopSearchField available={searchAvailable} preview={preview} />
 
-          {/* Commerce controls appear here as their routes are built (Phases 3–5).
-              Until then the header carries one real action instead of a row of
-              icons that would do nothing. */}
           <div className="ml-auto flex items-center gap-1">
-            {hasCommerceControls ? null : (
+            <MobileSearchButton available={searchAvailable} preview={preview} />
+            <HeaderControls items={controls} />
+            {showContactCta ? (
               <AppLink
                 href="/contact"
                 className="hidden min-h-11 items-center rounded-xl bg-accent px-4 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90 sm:inline-flex"
               >
                 Talk to us
               </AppLink>
-            )}
+            ) : null}
           </div>
         </Container>
       </div>
+
+      <DesktopPrimaryNav items={primaryNav} />
     </header>
   );
 }

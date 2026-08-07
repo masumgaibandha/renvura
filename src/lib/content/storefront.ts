@@ -11,13 +11,14 @@
  * with MongoDB queries; no calling component changes.
  */
 
-/** Supporting pastel tokens a category or age band may be tinted with (D-06). */
-export type AccentToken =
-  | 'soft-sky'
-  | 'soft-mint'
-  | 'soft-blush'
-  | 'soft-lavender'
-  | 'soft-sunshine';
+/**
+ * Supporting pastel tokens a category or age band may be tinted with (D-06).
+ * Canonically defined alongside the models, so the stored `accentToken` and the
+ * rendered one cannot drift apart.
+ */
+import type { AccentToken } from '@/lib/catalogue/types';
+
+export type { AccentToken };
 
 export type CategoryTile = {
   slug: string;
@@ -52,14 +53,63 @@ export type ProductCardData = {
   inStock: boolean;
 };
 
-/** Top-level categories for the "Shop by category" rail. Phase 2 populates this. */
-export async function getCategoryTiles(): Promise<CategoryTile[]> {
-  return [];
+/**
+ * Reads the catalogue only when demo mode is on, and never lets a database
+ * problem break a page.
+ *
+ * Two invariants depend on this wrapper:
+ *  - `npm run build` must not require a live MongoDB (D-15 "must be kept").
+ *    Demo mode is off by default and impossible in production, so a normal
+ *    build never opens a connection.
+ *  - A slow or unreachable development database degrades to an empty section,
+ *    which every consumer already renders correctly (§11.1.2).
+ */
+async function fromCatalogue<T>(read: () => Promise<T[]>): Promise<T[]> {
+  const { demoModeEnabled } = await import('@/lib/catalogue/demo');
+  if (!demoModeEnabled()) return [];
+
+  try {
+    return await read();
+  } catch {
+    return [];
+  }
 }
 
-/** Age bands for the "Shop by age" rail. Phase 2 populates this. */
+/** Top-level categories for the "Shop by category" rail. */
+export async function getCategoryTiles(): Promise<CategoryTile[]> {
+  return fromCatalogue(async () => {
+    const { listActiveCategories } = await import('@/lib/catalogue/repository');
+    const categories = await listActiveCategories();
+
+    // Only top-level categories reach the homepage rail; children belong to the
+    // category page's own navigation (design direction §8.1).
+    return categories
+      .filter((category) => category.parent === null || category.parent === undefined)
+      .map((category) => ({
+        slug: category.slug,
+        name: category.name,
+        href: `/category/${category.slug}`,
+        imageUrl: category.image?.url ?? undefined,
+        accentToken: (category.accentToken ?? 'soft-sky') as AccentToken,
+      }));
+  });
+}
+
+/** Age bands for the "Shop by age" rail. */
 export async function getAgeBands(): Promise<AgeBandPill[]> {
-  return [];
+  return fromCatalogue(async () => {
+    const { listActiveAgeBands } = await import('@/lib/catalogue/repository');
+    const bands = await listActiveAgeBands();
+
+    return bands.map((band) => ({
+      slug: band.slug,
+      label: band.label,
+      href: `/age/${band.slug}`,
+      minMonths: band.minMonths,
+      maxMonths: band.maxMonths,
+      accentToken: (band.accentToken ?? 'soft-sky') as AccentToken,
+    }));
+  });
 }
 
 /**

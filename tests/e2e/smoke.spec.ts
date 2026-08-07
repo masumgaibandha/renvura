@@ -192,6 +192,108 @@ test('mobile menu opens, lists only built routes, and navigates', async ({ page 
   await expect(page).toHaveURL(/\/about$/);
 });
 
+/**
+ * Navigation — the agreed structure, rendered under the no-dead-controls rule.
+ *
+ * In Phase 1 almost every commerce destination is unbuilt, so most of the
+ * structure is legitimately absent. These tests assert both halves: what is
+ * shown, and that nothing unbuilt leaks into the markup as a live control.
+ */
+test.describe('navigation', () => {
+  test('desktop primary nav shows only built destinations', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    const nav = page.getByRole('navigation', { name: 'Primary' });
+    await expect(nav).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'About', exact: true })).toBeVisible();
+
+    for (const label of ['Shop', 'Categories', 'Shop by Age', 'Blog']) {
+      await expect(nav.getByRole('link', { name: label, exact: true })).toHaveCount(0);
+    }
+  });
+
+  test('navigation never offers New Arrivals or Offers', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    const header = page.getByRole('banner');
+    await expect(header.getByText(/new arrivals/i)).toHaveCount(0);
+    await expect(header.getByText(/^offers$/i)).toHaveCount(0);
+  });
+
+  test('mobile header is menu + logo, with no unbuilt controls', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/');
+
+    const header = page.getByRole('banner');
+    await expect(header.getByRole('button', { name: 'Open menu' })).toBeVisible();
+    await expect(header.getByRole('link', { name: /Renvura/ })).toBeVisible();
+
+    // Search (Phase 3) and cart (Phase 4) do not exist yet.
+    await expect(header.getByRole('link', { name: /search/i })).toHaveCount(0);
+    await expect(header.getByRole('link', { name: /^cart$/i })).toHaveCount(0);
+  });
+
+  test('the mobile bottom tab bar is absent while only Home exists', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/');
+
+    await expect(page.getByRole('navigation', { name: 'Primary mobile' })).toHaveCount(0);
+  });
+
+  test('the mobile drawer lists only built destinations', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Open menu' }).click();
+
+    const menu = page.getByRole('navigation', { name: 'Mobile' });
+    await expect(menu.getByRole('link', { name: 'About', exact: true })).toBeVisible();
+    await expect(menu.getByRole('link', { name: 'Contact', exact: true })).toBeVisible();
+
+    for (const label of ['Shop', 'Categories', 'Shop by Age', 'Blog', 'Account', 'Wishlist']) {
+      await expect(menu.getByRole('link', { name: label, exact: true })).toHaveCount(0);
+    }
+  });
+
+  test('no disabled placeholder control is exposed publicly', async ({ page }) => {
+    // The §11.1.1 disabled preview is opt-in and must never reach a build like
+    // this one, at any width.
+    for (const width of [360, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      await expect(page.locator('[aria-disabled="true"]')).toHaveCount(0);
+    }
+  });
+
+  test('primary nav labels never wrap to a second line', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto('/');
+
+    const heights = await page
+      .getByRole('navigation', { name: 'Primary' })
+      .locator('a')
+      .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+
+    expect(heights.length).toBeGreaterThan(0);
+    for (const height of heights) expect(height).toBeLessThan(56);
+  });
+
+  test('no horizontal overflow at any supported width', async ({ page }) => {
+    for (const width of [360, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+
+      for (const path of ['/', '/about', '/contact']) {
+        await page.goto(path);
+        const overflows = await page.evaluate(
+          () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        );
+        expect(overflows, `${path} scrolls horizontally at ${width}px`).toBe(false);
+      }
+    }
+  });
+});
+
 test('no horizontal overflow at 360px on any built route', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
 
