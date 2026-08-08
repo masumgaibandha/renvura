@@ -185,6 +185,22 @@ describe('sorting', () => {
     sortProducts(input, 'name-asc');
     expect(input).toEqual(catalogue);
   });
+
+  it('price-desc is the exact reverse of price-asc among priced products', () => {
+    // Pins the whole-catalogue ordering claim the storefront's sort control
+    // makes, not just the first few entries: whatever order "low to high"
+    // produces for the priced items, "high to low" must be its exact
+    // reverse, with unpriced items still excluded from both.
+    const asc = sortProducts(catalogue, 'price-asc')
+      .map((p) => ('priceMinor' in p ? p.priceMinor : undefined))
+      .filter((price): price is number => typeof price === 'number');
+    const desc = sortProducts(catalogue, 'price-desc')
+      .map((p) => ('priceMinor' in p ? p.priceMinor : undefined))
+      .filter((price): price is number => typeof price === 'number');
+
+    expect(asc).toEqual([...asc].sort((a, b) => a - b));
+    expect(desc).toEqual([...asc].reverse());
+  });
 });
 
 describe('URL construction', () => {

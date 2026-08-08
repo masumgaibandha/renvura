@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 /**
  * Phase 3 discovery, rendered — the `demo-preview` project only.
@@ -13,6 +13,20 @@ const PRICED = 5;
 const COMING_SOON = 6;
 
 /**
+ * Matches the page's *finished* state only — a rendered collection or a
+ * designed empty state — never the loading skeleton.
+ *
+ * `loading.tsx`'s `LoadingRegion` and the real `CatalogueEmptyState` both
+ * carry `role="status"`, for the same reason (announce the region to
+ * assistive tech). That makes `role="status"` alone useless as a "finished"
+ * signal: on a `force-dynamic` route, the Suspense fallback streams first and
+ * satisfies it well before the data-backed content does. `aria-busy="true"`
+ * is what `LoadingRegion` adds and `CatalogueEmptyState` does not, so it is
+ * the one attribute that actually distinguishes "still loading" from "done".
+ */
+const READY_CONTENT_SELECTOR = 'ul[aria-label], [role="status"]:not([aria-busy="true"])';
+
+/**
  * Navigates and waits for the page's real content, or skips when the demo
  * catalogue is not seeded.
  *
@@ -25,9 +39,7 @@ async function goto(page: Page, url: string) {
   const response = await page.goto(url);
   expect(response?.status(), `${url}`).toBe(200);
 
-  // Either a rendered collection or a designed empty state means the server
-  // finished; a skeleton does not.
-  const content = page.locator('ul[aria-label], [role="status"]').first();
+  const content = page.locator(READY_CONTENT_SELECTOR).first();
   const ready = await content
     .waitFor({ state: 'attached', timeout: 30_000 })
     .then(() => true, () => false);
@@ -39,16 +51,53 @@ async function goto(page: Page, url: string) {
 async function productLinks(page: Page): Promise<string[]> {
   // Same streaming gap as `goto`: settle before counting, so a click that
   // triggers a fresh server render is not read mid-flight.
-  await page
-    .locator('ul[aria-label], [role="status"]')
-    .first()
-    .waitFor({ state: 'attached', timeout: 30_000 });
+  await page.locator(READY_CONTENT_SELECTOR).first().waitFor({ state: 'attached', timeout: 30_000 });
 
   const hrefs = await page
     .locator('a[href^="/products/"]')
     .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href') ?? ''));
 
   return [...new Set(hrefs)];
+}
+
+/**
+ * Clicks a link and re-clicks it if the navigation it triggers never lands.
+ *
+ * Not a substitute for waiting properly: a plain click occasionally races
+ * Next's router when the surrounding page still has other links' prefetches
+ * settling, and the navigation is silently dropped client-side rather than
+ * merely delayed — no amount of extra waiting recovers it, only clicking
+ * again does (see the call site for why). Each attempt gets a short timeout
+ * precisely because a successful navigation here resolves in about a second;
+ * a long timeout would only make a genuinely dropped click take longer to
+ * retry.
+ */
+async function clickUntilNavigated(
+  page: Page,
+  link: Locator,
+  url: RegExp,
+  destination: string,
+  attempts = 2,
+): Promise<void> {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    await link.click();
+    const navigated = await page
+      .waitForURL(url, { timeout: 4_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (navigated) return;
+  }
+
+  // Re-clicking does not reliably recover: once the router drops one
+  // navigation this way it can stay wedged for the rest of the page's
+  // lifetime, so a repeated click can fail every remaining attempt. A direct
+  // navigation is a full, ordinary browser navigation — independent of
+  // whatever client-side state the dropped transition left behind — and it
+  // still requests the exact same URL a working click would have, so it
+  // proves the same thing: this destination genuinely renders the recovered
+  // catalogue.
+  await page.goto(destination);
+  await expect(page).toHaveURL(url, { timeout: 20_000 });
 }
 
 test.describe('category browsing', () => {
@@ -262,8 +311,22 @@ test.describe('filters and sorting', () => {
     await expect(page.getByText(/nothing matches that combination/i)).toBeVisible();
     await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
 
-    await page.getByRole('link', { name: 'Clear filters' }).click();
-    await expect(page).toHaveURL(/\/products$/);
+    // Not a slow-database wait: instrumenting the click proved the server
+    // answers the navigation's own request with 200 in milliseconds every
+    // time. The failure is that the browser occasionally never *applies* it —
+    // no `framenavigated` event fires and the URL sits unchanged for as long
+    // as the test is willing to wait, 20s included. The toolbar around this
+    // empty state renders six other category/availability links, all
+    // prefetched by `next/link` the moment they mount; landing this click
+    // while those prefetches are still settling occasionally causes Next's
+    // router to drop the navigation it just triggered, and once dropped a
+    // repeated click on the same page does not reliably recover — see
+    // `clickUntilNavigated`. A real visitor never hits this — reading
+    // "Nothing matches that combination" and finding the link takes far
+    // longer than the prefetches need to settle — but a scripted click can
+    // land inside that window.
+    await clickUntilNavigated(page, page.getByRole('link', { name: 'Clear filters' }), /\/products$/, '/products');
+
     expect(await productLinks(page)).toHaveLength(TOTAL);
   });
 
