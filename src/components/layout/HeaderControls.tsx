@@ -1,6 +1,7 @@
 import type { IconType } from 'react-icons';
 import { FiHeart, FiShoppingCart, FiUser } from 'react-icons/fi';
 import { AppLink } from '@/components/ui/AppLink';
+import { CartCountBadge } from '@/components/layout/CartCountBadge';
 import type { ResolvedNavItem } from '@/lib/navigation';
 
 /**
@@ -9,10 +10,10 @@ import type { ResolvedNavItem } from '@/lib/navigation';
  * Account and Wishlist are desktop-only; the mobile bar keeps Cart alone, per
  * the agreed mobile structure (Menu · Logo · Search · Cart).
  *
- * Counts: the cart and wishlist badges are supported here (gold fill, navy
- * text, as §5.2 requires) but nothing supplies a count in Phase 1 and none is
- * invented — the badge renders only for a real, positive number, so it stays
- * absent until Phase 4 has genuine cart state (D-12).
+ * Counts: the wishlist badge (via `counts`) has nothing to supply yet and none
+ * is invented — it renders only for a real, positive number (D-12). Cart's
+ * count is genuine client state as of Phase 4, so it is a small client island
+ * (`CartCountBadge`) rather than a prop this server component could ever see.
  */
 
 const ICONS: Record<string, IconType> = {
@@ -43,7 +44,9 @@ export function HeaderControls({
             {item.available ? (
               <AppLink href={item.href} aria-label={item.label} className={`${base} text-ink`}>
                 <Icon aria-hidden="true" className="size-5" />
-                {typeof count === 'number' && count > 0 ? (
+                {item.id === 'cart' ? (
+                  <CartCountBadge />
+                ) : typeof count === 'number' && count > 0 ? (
                   <span className="absolute right-1 top-1 min-w-4 rounded-full bg-accent px-1 text-center text-[0.625rem] font-bold leading-4 text-on-accent">
                     {count}
                   </span>

@@ -92,17 +92,9 @@ test('there is no theme toggle and no language toggle', async ({ page }) => {
 });
 
 test('no link anywhere points at an unbuilt route', async ({ page }) => {
-  // `/search` left this list in Phase 3, when it became a real route.
-  const unbuilt = [
-    '/collections',
-    '/offers',
-    '/cart',
-    '/checkout',
-    '/track',
-    '/wishlist',
-    '/account',
-    '/blog',
-  ];
+  // `/search` left this list in Phase 3; `/cart`, `/checkout` and `/track`
+  // left it in Phase 4, when they became real routes.
+  const unbuilt = ['/collections', '/offers', '/wishlist', '/account', '/blog'];
 
   for (const path of ['/', '/about', '/contact', '/faq', '/privacy']) {
     await page.goto(path);
@@ -238,11 +230,11 @@ test.describe('navigation', () => {
       'href',
       '/search',
     );
-    // Cart is Phase 4 and still absent.
-    await expect(header.getByRole('link', { name: /^cart$/i })).toHaveCount(0);
+    // Cart became real in Phase 4 — it is the one header control kept on mobile.
+    await expect(header.getByRole('link', { name: /^cart$/i })).toBeVisible();
   });
 
-  test('the mobile bottom tab bar carries Home, Shop and Search, and nothing unbuilt', async ({
+  test('the mobile bottom tab bar carries Home, Shop, Search and Cart, and nothing unbuilt', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 780 });
@@ -250,14 +242,12 @@ test.describe('navigation', () => {
 
     const bar = page.getByRole('navigation', { name: 'Primary mobile' });
     await expect(bar).toBeVisible();
-    for (const label of ['Home', 'Shop', 'Search']) {
+    for (const label of ['Home', 'Shop', 'Search', 'Cart']) {
       await expect(bar.getByRole('link', { name: label })).toBeVisible();
     }
 
-    // Phase 4 destinations stay out until they exist.
-    for (const label of ['Wishlist', 'Cart']) {
-      await expect(bar.getByRole('link', { name: label })).toHaveCount(0);
-    }
+    // Wishlist has no route yet and stays out.
+    await expect(bar.getByRole('link', { name: 'Wishlist' })).toHaveCount(0);
   });
 
   test('the bottom tab bar never covers the end of the page', async ({ page }) => {

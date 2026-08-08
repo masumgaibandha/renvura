@@ -20,6 +20,20 @@ export const CONTACT_RATE_LIMIT: RateLimitRule = {
   windowMs: 15 * 60 * 1000,
 };
 
+/** Order placement: generous enough for a genuine retry, tight enough to slow abuse. */
+export const ORDER_RATE_LIMIT: RateLimitRule = {
+  bucket: 'order',
+  limit: 8,
+  windowMs: 15 * 60 * 1000,
+};
+
+/** Order tracking: the guessable half of the pair is the order number, not the phone — kept tight. */
+export const TRACK_RATE_LIMIT: RateLimitRule = {
+  bucket: 'track',
+  limit: 10,
+  windowMs: 15 * 60 * 1000,
+};
+
 /** Start of the fixed window containing `now`. Pure, so it is unit-tested. */
 export function windowStartFor(now: number, windowMs: number): number {
   return Math.floor(now / windowMs) * windowMs;

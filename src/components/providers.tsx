@@ -4,6 +4,7 @@ import { RouterProvider } from '@heroui/react/rac';
 import { useRouter } from 'next/navigation';
 import { Toaster } from 'react-hot-toast';
 import type { ReactNode } from 'react';
+import { CartProvider } from '@/lib/cart/context';
 
 /**
  * Client providers.
@@ -18,7 +19,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <RouterProvider navigate={router.push}>
-      {children}
+      <CartProvider>{children}</CartProvider>
       <Toaster
         position="bottom-center"
         toastOptions={{

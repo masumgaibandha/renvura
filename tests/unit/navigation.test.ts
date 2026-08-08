@@ -68,9 +68,9 @@ describe('agreed navigation structure', () => {
 
 describe('availability', () => {
   it('withholds an item whose route is not built', () => {
-    expect(isNavItemAvailable({ id: 'x', label: 'X', href: '/cart', requiresRoute: '/cart' })).toBe(
-      false,
-    );
+    expect(
+      isNavItemAvailable({ id: 'x', label: 'X', href: '/wishlist', requiresRoute: '/wishlist' }),
+    ).toBe(false);
   });
 
   it('allows an item whose route is built', () => {
@@ -147,10 +147,10 @@ describe('resolveNav', () => {
 });
 
 describe('bottom tab bar threshold', () => {
-  it('carries Home, Shop and — since Phase 3 — Search', () => {
+  it('carries Home, Shop, Search and — since Phase 4 — Cart', () => {
     const resolved = resolveNav(bottomNavItems, {}, false);
 
-    expect(labelsOf(resolved)).toEqual(['Home', 'Shop', 'Search']);
+    expect(labelsOf(resolved)).toEqual(['Home', 'Shop', 'Search', 'Cart']);
     expect(resolved.length).toBeGreaterThanOrEqual(MIN_BOTTOM_NAV_ITEMS);
     expect(shouldRenderBottomNav(resolved)).toBe(true);
   });
@@ -161,14 +161,14 @@ describe('bottom tab bar threshold', () => {
     expect(shouldRenderBottomNav([{ ...bottomNavItems[0]!, available: true }])).toBe(false);
   });
 
-  it('keeps Wishlist and Cart out until their routes exist', () => {
-    // Search joined the bar in Phase 3 because `/search` became real. Wishlist
-    // and Cart are Phase 4 and stay absent — the bar lists destinations, not
-    // intentions (D-15).
+  it('keeps Wishlist out until its route exists', () => {
+    // Search joined the bar in Phase 3 because `/search` became real, and Cart
+    // joined in Phase 4 for the same reason. Wishlist has no route yet and
+    // stays absent — the bar lists destinations, not intentions (D-15).
     const labels = labelsOf(resolveNav(bottomNavItems, {}, false));
 
     expect(labels).toContain('Search');
+    expect(labels).toContain('Cart');
     expect(labels).not.toContain('Wishlist');
-    expect(labels).not.toContain('Cart');
   });
 });

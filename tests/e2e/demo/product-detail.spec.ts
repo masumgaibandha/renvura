@@ -85,18 +85,26 @@ test('states no discount, saving, rating, stock or urgency', async ({ page }) =>
   await expect(page.locator('[role="img"][aria-label*="star" i]')).toHaveCount(0);
 });
 
-test('offers no fake purchase control, and no dead control of any kind', async ({ page }) => {
+test('offers real, working purchase controls — no dead control of any kind', async ({ page }) => {
+  // Phase 4: an available, priced product gets real Add to Cart / Buy Now
+  // controls in place of the "ask about this product" fallback Phase 1–3
+  // showed for every product. Neither is `aria-disabled` — a control that
+  // looks live and does nothing is worse than not shipping it (§11.1.1).
   await gotoProduct(page);
 
-  await expect(page.getByRole('button', { name: /add to cart/i })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /buy now/i })).toHaveCount(0);
   await expect(page.locator('[aria-disabled="true"]')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Ask about this product' })).toHaveCount(0);
 
-  // The one action that genuinely works today.
-  await expect(page.getByRole('link', { name: 'Ask about this product' })).toHaveAttribute(
-    'href',
-    '/contact',
-  );
+  const addToCart = page.getByRole('button', { name: 'Add to Cart' });
+  const buyNow = page.getByRole('button', { name: 'Order via Cash on Delivery' });
+  await expect(addToCart).toBeVisible();
+  await expect(buyNow).toBeVisible();
+
+  await addToCart.click();
+  await expect(page.getByText(/added .*to cart/i)).toBeVisible();
+
+  await buyNow.click();
+  await expect(page.getByRole('dialog', { name: 'Order with Cash on Delivery' })).toBeVisible();
 });
 
 test('every link on the page resolves to a real route', async ({ page, request }) => {

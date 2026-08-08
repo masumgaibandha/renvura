@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidBangladeshiMobile } from '@/lib/validation/phone';
 
 /**
  * Validation messages are stable *codes*, not sentences, so the same schema
@@ -6,16 +7,13 @@ import { z } from 'zod';
  * place (`CONTACT_ERRORS` below).
  */
 
-/** Bangladeshi mobile numbers: optional +88, then 01[3-9] and eight digits. */
-export const BD_MOBILE_PATTERN = /^(?:\+?88)?01[3-9]\d{8}$/;
-
 export const contactFormSchema = z.object({
   name: z.string().trim().min(1, 'nameRequired').max(100, 'nameTooLong'),
   phone: z
     .string()
     .trim()
     .min(1, 'phoneRequired')
-    .refine((value) => BD_MOBILE_PATTERN.test(value.replace(/[\s-]/g, '')), 'phoneInvalid'),
+    .refine((value) => isValidBangladeshiMobile(value), 'phoneInvalid'),
   email: z
     .union([z.literal(''), z.email('emailInvalid').max(254, 'emailInvalid')])
     .optional()

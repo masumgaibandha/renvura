@@ -151,9 +151,9 @@ export const siteRoutes: readonly SiteRoute[] = [
   // classic thin-content trap.
   { path: '/search', label: 'Search', phase: 'built', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
   { path: '/offers', label: 'Offers', phase: 'phase-3', indexable: true, priority: 0.7, changeFrequency: 'weekly', footerColumn: 'shop' },
-  { path: '/cart', label: 'Cart', phase: 'phase-4', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
-  { path: '/checkout', label: 'Checkout', phase: 'phase-4', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
-  { path: '/track', label: 'Track Order', phase: 'phase-4', indexable: true, priority: 0.6, changeFrequency: 'monthly', footerColumn: 'help' },
+  { path: '/cart', label: 'Cart', phase: 'built', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
+  { path: '/checkout', label: 'Checkout', phase: 'built', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
+  { path: '/track', label: 'Track Order', phase: 'built', indexable: true, priority: 0.6, changeFrequency: 'monthly', footerColumn: 'help' },
   { path: '/wishlist', label: 'Wishlist', phase: 'phase-4', indexable: false, priority: 0.3, changeFrequency: 'weekly' },
   { path: '/account', label: 'Account', phase: 'phase-5', indexable: false, priority: 0.3, changeFrequency: 'monthly' },
   { path: '/blog', label: 'Articles', phase: 'phase-9', indexable: true, priority: 0.7, changeFrequency: 'weekly', footerColumn: 'company' },

@@ -76,12 +76,11 @@ describe('route registry', () => {
 
   it('declares later-phase commerce routes without making them navigable', () => {
     const declared = siteRoutes.map((route) => route.path);
-    expect(declared).toContain('/cart');
-    expect(declared).toContain('/checkout');
+    expect(declared).toContain('/wishlist');
+    expect(declared).toContain('/account');
 
     const navigable = builtRoutes.map((route) => route.path);
-    expect(navigable).not.toContain('/cart');
-    expect(navigable).not.toContain('/checkout');
+    expect(navigable).not.toContain('/wishlist');
     expect(navigable).not.toContain('/account');
   });
 
@@ -90,6 +89,21 @@ describe('route registry', () => {
     // indexable page per query is the classic thin-content trap.
     expect(builtRoutes.map((route) => route.path)).toContain('/search');
     expect(sitemapRoutes.map((route) => route.path)).not.toContain('/search');
+  });
+
+  it('made cart, checkout and tracking navigable in Phase 4 — cart and checkout stay unindexed', () => {
+    const navigable = builtRoutes.map((route) => route.path);
+    expect(navigable).toContain('/cart');
+    expect(navigable).toContain('/checkout');
+    expect(navigable).toContain('/track');
+
+    const indexable = sitemapRoutes.map((route) => route.path);
+    expect(indexable).not.toContain('/cart');
+    expect(indexable).not.toContain('/checkout');
+    // The bare tracking form is genuine evergreen content; only a lookup's
+    // results are personal, and those are never part of the sitemap either
+    // way — there is no per-order URL for a crawler to find.
+    expect(indexable).toContain('/track');
   });
 
   it('keeps the shop out of the sitemap while its catalogue is being prepared', () => {

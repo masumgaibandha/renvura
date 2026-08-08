@@ -219,12 +219,15 @@ describe('navigation after the shop went live', () => {
   });
 
   it('still withholds every commerce control whose route does not exist', () => {
-    // Wishlist and Cart (Phase 4), Account (Phase 5). Search became real in
-    // Phase 3 and is asserted separately.
-    expect(resolveNav(headerControlItems, {}, false)).toEqual([]);
+    // Wishlist (still Phase 4) and Account (Phase 5) stay withheld. Cart
+    // became real in Phase 4 and is the one header control now available;
+    // Search became real in Phase 3 and is asserted separately.
+    const resolved = resolveNav(headerControlItems, {}, false);
+    expect(resolved.map((item) => item.id)).toEqual(['cart']);
 
-    for (const path of ['/wishlist', '/cart', '/account', '/blog']) {
+    for (const path of ['/wishlist', '/account', '/blog']) {
       expect(isBuilt(path), `${path} must not be built yet`).toBe(false);
     }
+    expect(isBuilt('/cart')).toBe(true);
   });
 });

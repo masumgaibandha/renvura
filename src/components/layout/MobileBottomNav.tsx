@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import type { IconType } from 'react-icons';
 import { FiHeart, FiHome, FiSearch, FiShoppingBag, FiShoppingCart } from 'react-icons/fi';
 import { AppLink } from '@/components/ui/AppLink';
+import { useCart } from '@/lib/cart/context';
 import type { BottomNavId, ResolvedNavItem } from '@/lib/navigation';
 
 /**
@@ -36,6 +37,7 @@ const ICONS: Record<BottomNavId, IconType> = {
 
 export function MobileBottomNav({ items }: { items: ResolvedNavItem[] }) {
   const pathname = usePathname();
+  const { count, isReady } = useCart();
 
   if (items.length === 0) return null;
 
@@ -48,6 +50,7 @@ export function MobileBottomNav({ items }: { items: ResolvedNavItem[] }) {
         {items.map((item) => {
           const Icon = ICONS[item.id as BottomNavId] ?? FiHome;
           const isActive = item.available && pathname === item.href;
+          const showCartBadge = item.id === 'cart' && isReady && count > 0;
 
           const inner = (
             <>
@@ -55,7 +58,14 @@ export function MobileBottomNav({ items }: { items: ResolvedNavItem[] }) {
                 aria-hidden="true"
                 className={`h-0.5 w-8 rounded-full ${isActive ? 'bg-brand-gold' : 'bg-transparent'}`}
               />
-              <Icon aria-hidden="true" className="size-5" />
+              <span className="relative inline-flex">
+                <Icon aria-hidden="true" className="size-5" />
+                {showCartBadge ? (
+                  <span className="absolute -right-2 -top-1.5 min-w-4 rounded-full bg-accent px-1 text-center text-[0.625rem] font-bold leading-4 text-on-accent">
+                    {count > 99 ? '99+' : count}
+                  </span>
+                ) : null}
+              </span>
               <span className={`text-[0.625rem] ${isActive ? 'font-semibold' : 'font-medium'}`}>
                 {item.label}
               </span>

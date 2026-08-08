@@ -179,6 +179,7 @@
   --color-accent: var(--accent);
   --color-on-accent: var(--accent-foreground);
   --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
 
   --font-display: var(--font-lora), Georgia, 'Times New Roman', serif;
   --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;

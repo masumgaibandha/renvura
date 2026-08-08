@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductGallery } from '@/components/commerce/ProductGallery';
 import { ProductGrid } from '@/components/commerce/ProductGrid';
+import { PurchaseControls } from '@/components/commerce/PurchaseControls';
 import { AppLink } from '@/components/ui/AppLink';
 import { Bn } from '@/components/ui/Bn';
 import { Container } from '@/components/ui/Container';
@@ -133,6 +134,10 @@ function BuyBox({ product }: { product: ProductDetailData }) {
   const isComingSoon = product.availability === 'coming-soon';
   const price = formatTakaOrUndefined(product.priceMinor);
   const comparePrice = formatTakaOrUndefined(product.comparePriceMinor);
+  // A real price is what actually makes a product purchasable, not merely
+  // `availability` — an `available` product the founder has not priced yet
+  // is exactly as unpurchasable as a Coming Soon one (§18, D-12).
+  const isPurchasable = !isComingSoon && typeof product.priceMinor === 'number' && product.priceMinor > 0;
 
   return (
     <div className="lg:pt-2">
@@ -195,18 +200,27 @@ function BuyBox({ product }: { product: ProductDetailData }) {
         </p>
       ) : null}
 
-      <PurchaseArea isComingSoon={isComingSoon} />
+      {isPurchasable ? (
+        <PurchaseControls
+          product={{
+            slug: product.slug,
+            name: product.name,
+            priceMinor: product.priceMinor as number,
+            imageUrl: product.images[0]?.url,
+            imageAlt: product.images[0]?.alt,
+            isDemo: product.isDemo,
+          }}
+        />
+      ) : (
+        <PurchaseArea isComingSoon={isComingSoon} />
+      )}
     </div>
   );
 }
 
 /**
- * The purchase area, honestly.
- *
- * Cart and checkout arrive in Phase 4. Rather than a disabled "Add to Cart"
- * that teaches a customer the store is broken, this states where things stand
- * and offers the one action that genuinely works today (§11.1.1). Phase 4
- * replaces this block; nothing else on the page changes.
+ * The honest fallback purchase area — Coming Soon products, and the rare
+ * `available` product the founder has not priced yet (§11.1.1, D-12).
  */
 function PurchaseArea({ isComingSoon }: { isComingSoon: boolean }) {
   return (
