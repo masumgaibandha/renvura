@@ -1,9 +1,11 @@
-import { copyFile, mkdir, readFile, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { assertDemoModeAllowed, DemoDataError } from '@/lib/catalogue/demo';
 import { readImageMetadata } from '@/lib/catalogue/image-metadata';
+import { takaToMinorUnits } from '@/lib/catalogue/price';
 import {
   AGE_BAND_SEEDS,
+  assertSeedPricingIntegrity,
   CATEGORY_SEEDS,
   NEVER_STOREFRONT_MEDIA,
   PRODUCT_SEEDS,
@@ -42,6 +44,9 @@ export type SeedSummary = {
   products: number;
   imagesStaged: number;
   videosStaged: number;
+  /** Obsolete demo products deleted, e.g. a replaced product 5. */
+  productsRemoved: number;
+  mediaDirsRemoved: number;
   warnings: string[];
 };
 
@@ -126,10 +131,32 @@ async function seedProduct(
   const categoryId = categoryIds.get(seed.categorySlug);
   if (!categoryId) throw new DemoDataError(`${seed.slug}: unknown category "${seed.categorySlug}"`);
 
+  /**
+   * Price is set only for an `available` product, and actively **cleared** for a
+   * coming-soon one.
+   *
+   * `$unset` rather than "leave it alone": a product moved to Coming Soon after
+   * once being priced would otherwise keep its old price in the document, where
+   * any future query that forgets to check availability would find it and show
+   * it as current (D-12).
+   */
+  const price = seed.price
+    ? {
+        priceMinor: takaToMinorUnits(seed.price.selling),
+        comparePriceMinor: takaToMinorUnits(seed.price.display),
+      }
+    : {};
+  const unsetPrice = seed.price ? undefined : { priceMinor: '', comparePriceMinor: '' };
+
   await Product.findOneAndUpdate(
     { slug: seed.slug },
     {
+      ...(unsetPrice ? { $unset: unsetPrice } : {}),
       $set: {
+        // Founder-approved storefront prices, converted to integer poisha.
+        // `selling` is what the customer pays; `display` is the higher
+        // reference price the card strikes through. Empty for Coming Soon.
+        ...price,
         name: seed.name,
         slug: seed.slug,
         shortDescription: seed.shortDescription,
@@ -148,16 +175,17 @@ async function seedProduct(
           evidence: seed.evidence,
           verification: { status: 'unverified', notes: 'Supplier listing observations only. No document or named responsible person has been obtained.' },
         },
-        // Deliberately absent: priceMinor, sku, stock, ageRange,
-        // developmentDomains, expertNote, milestones, ageGuidance. None of
-        // these is founder-verified, and inventing any of them is exactly what
-        // D-12 forbids.
+        // Deliberately absent: sku, stock, ageRange, developmentDomains,
+        // expertNote, milestones, ageGuidance. None of these is founder-
+        // verified, and inventing any of them is exactly what D-12 forbids.
+        // Prices are the one exception — they are now explicit founder data.
         stockPolicy: 'track',
         status: 'draft',
+        availability: seed.availability,
         isDemo: true,
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   ).exec();
 
   summary.products += 1;
@@ -183,8 +211,14 @@ export async function seedCatalogue(): Promise<SeedSummary> {
     products: 0,
     imagesStaged: 0,
     videosStaged: 0,
+    productsRemoved: 0,
+    mediaDirsRemoved: 0,
     warnings: [],
   };
+
+  // Fail before writing anything: a priced Coming Soon product, or an available
+  // product with no price, must never reach the database.
+  assertSeedPricingIntegrity();
 
   // Fail before writing anything if the configured bands are not a valid
   // contiguous, non-overlapping sequence (§3.3).
@@ -216,7 +250,7 @@ export async function seedCatalogue(): Promise<SeedSummary> {
           isActive: true,
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
     ).exec();
 
     categoryIds.set(seed.slug, String(doc?._id));
@@ -227,7 +261,7 @@ export async function seedCatalogue(): Promise<SeedSummary> {
     await AgeBand.findOneAndUpdate(
       { slug: seed.slug },
       { $set: { ...seed, isActive: true } },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
     ).exec();
     summary.ageBands += 1;
   }
@@ -236,5 +270,46 @@ export async function seedCatalogue(): Promise<SeedSummary> {
     await seedProduct(seed, categoryIds, summary);
   }
 
+  await pruneObsoleteDemoData(summary);
+
   return summary;
+}
+
+/**
+ * Removes demo records this seed no longer owns.
+ *
+ * Needed because a product can be **replaced**, not merely renamed — the abacus
+ * that was Phase 2B's product 5 was swapped for the bumper cars, and without
+ * this it would linger in the database and keep appearing on the storefront.
+ *
+ * Scoped deliberately tightly:
+ *  - only documents with `isDemo: true`, which this seed is the sole author of
+ *  - only slugs absent from the current seed set
+ *  - staged media directories under `public/demo-products/` on the same rule
+ *
+ * Real products, categories and age bands are never touched. Categories are
+ * upserted but never pruned: a founder-created category must not disappear
+ * because it is missing from a seed file.
+ */
+async function pruneObsoleteDemoData(summary: SeedSummary): Promise<void> {
+  const currentSlugs = PRODUCT_SEEDS.map((seed) => seed.slug);
+
+  const removed = await Product.deleteMany({
+    isDemo: true,
+    slug: { $nin: currentSlugs },
+  }).exec();
+
+  summary.productsRemoved = removed.deletedCount ?? 0;
+
+  // Staged media for products that no longer exist.
+  try {
+    const staged = await readdir(STAGING_ROOT, { withFileTypes: true });
+    for (const entry of staged) {
+      if (!entry.isDirectory() || currentSlugs.includes(entry.name)) continue;
+      await rm(path.join(STAGING_ROOT, entry.name), { recursive: true, force: true });
+      summary.mediaDirsRemoved += 1;
+    }
+  } catch {
+    // Nothing staged yet — nothing to prune.
+  }
 }

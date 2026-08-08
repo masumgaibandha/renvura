@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "db:check": "tsx scripts/db-check.ts",
     "db:seed": "tsx scripts/seed-catalogue.ts",
+    "db:verify": "tsx scripts/verify-catalogue.ts",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

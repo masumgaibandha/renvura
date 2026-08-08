@@ -6,7 +6,7 @@ import { DesktopSearchField, MobileSearchButton } from '@/components/layout/Sear
 import { AppLink } from '@/components/ui/AppLink';
 import { Container } from '@/components/ui/Container';
 import { Logo } from '@/components/ui/Logo';
-import { getAgeBands, getCategoryTiles } from '@/lib/content/storefront';
+import { getCategoryTree, hasAgeAssignments } from '@/lib/content/storefront';
 import {
   headerControlItems,
   isSearchAvailable,
@@ -34,11 +34,13 @@ import {
  * as its phase flips it to `built`, with no change to this file.
  */
 export async function Header() {
-  const [categories, ageBands] = await Promise.all([getCategoryTiles(), getAgeBands()]);
+  const [categories, ageAssignments] = await Promise.all([getCategoryTree(), hasAgeAssignments()]);
 
   const context = {
     hasCategories: categories.length > 0,
-    hasAgeBands: ageBands.length > 0,
+    // Gated on real age *assignments*, not on the existence of bands — see the
+    // note in `@/lib/navigation`.
+    hasAgeBands: ageAssignments,
   };
   // Server-only: the disabled preview must never be decided in a client bundle.
   const preview = navPreviewEnabled();
@@ -59,7 +61,7 @@ export async function Header() {
 
       <div className="border-b border-line">
         <Container className="flex h-16 items-center gap-2 sm:gap-4">
-          <MobileMenu items={menuItems} />
+          <MobileMenu items={menuItems} categories={categories} />
 
           <AppLink
             href="/"
@@ -86,7 +88,7 @@ export async function Header() {
         </Container>
       </div>
 
-      <DesktopPrimaryNav items={primaryNav} />
+      <DesktopPrimaryNav items={primaryNav} categories={categories} />
     </header>
   );
 }

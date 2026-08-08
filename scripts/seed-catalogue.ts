@@ -33,6 +33,8 @@ async function main(): Promise<void> {
   console.log(`  products:       ${summary.products} (demo drafts)`);
   console.log(`  images staged:  ${summary.imagesStaged}`);
   console.log(`  videos staged:  ${summary.videosStaged}`);
+  console.log(`  obsolete demo products removed: ${summary.productsRemoved}`);
+  console.log(`  obsolete media folders removed: ${summary.mediaDirsRemoved}`);
 
   for (const warning of summary.warnings) console.log(`  note: ${warning}`);
 

@@ -111,42 +111,64 @@ describe('resolveNav', () => {
     const resolved = resolveNav(primaryNavItems, {}, false);
 
     expect(resolved.every((item) => item.available)).toBe(true);
-    expect(labelsOf(resolved)).not.toContain('Shop');
+    // Blog is Phase 9; it must not appear until that route exists.
     expect(labelsOf(resolved)).not.toContain('Blog');
+    // Categories and Shop by Age are data-gated, and no categories exist here.
+    expect(labelsOf(resolved)).not.toContain('Categories');
+    expect(labelsOf(resolved)).not.toContain('Shop by Age');
   });
 
-  it('keeps About, which is built today', () => {
-    expect(labelsOf(resolveNav(primaryNavItems, {}, false))).toContain('About');
+  it('keeps the destinations that are built today', () => {
+    const labels = labelsOf(resolveNav(primaryNavItems, {}, false));
+
+    expect(labels).toContain('About');
+    // `/products` went live in Phase 2C, so Shop is now a real destination.
+    expect(labels).toContain('Shop');
   });
 
   it('keeps unavailable items flagged when the disabled preview is on', () => {
     const resolved = resolveNav(primaryNavItems, {}, true);
 
     expect(resolved).toHaveLength(primaryNavItems.length);
-    expect(resolved.find((item) => item.id === 'shop')?.available).toBe(false);
+    expect(resolved.find((item) => item.id === 'blog')?.available).toBe(false);
     expect(resolved.find((item) => item.id === 'about')?.available).toBe(true);
+    expect(resolved.find((item) => item.id === 'shop')?.available).toBe(true);
   });
 
-  it('reveals items automatically once their requirements are met', () => {
-    // Simulates Phase 2 landing categories, without touching this config.
+  it('reveals data-gated items automatically once their data exists', () => {
+    const withoutData = resolveNav(primaryNavItems, {}, false);
     const withData = resolveNav(primaryNavItems, { hasCategories: true, hasAgeBands: true }, false);
-    const expected = isBuilt('/products') ? 3 : 1;
 
-    expect(withData.length).toBe(expected);
+    // Categories and Shop by Age light up with no change to this config.
+    expect(withData.length).toBe(withoutData.length + (isBuilt('/products') ? 2 : 0));
+    expect(labelsOf(withData)).toContain('Categories');
+    expect(labelsOf(withData)).toContain('Shop by Age');
   });
 });
 
 describe('bottom tab bar threshold', () => {
-  it('omits the bar rather than shipping it near-empty', () => {
+  it('carries Home, Shop and — since Phase 3 — Search', () => {
     const resolved = resolveNav(bottomNavItems, {}, false);
 
-    // Only Home exists in Phase 1, so the bar is not rendered at all.
-    expect(labelsOf(resolved)).toEqual(['Home']);
-    expect(resolved.length).toBeLessThan(MIN_BOTTOM_NAV_ITEMS);
-    expect(shouldRenderBottomNav(resolved)).toBe(false);
+    expect(labelsOf(resolved)).toEqual(['Home', 'Shop', 'Search']);
+    expect(resolved.length).toBeGreaterThanOrEqual(MIN_BOTTOM_NAV_ITEMS);
+    expect(shouldRenderBottomNav(resolved)).toBe(true);
   });
 
-  it('renders once a second destination exists', () => {
-    expect(shouldRenderBottomNav(resolveNav(bottomNavItems, {}, true))).toBe(true);
+  it('still omits the bar rather than shipping it with a single tab', () => {
+    // A tab bar of one is not a tab bar, and it would permanently occupy
+    // scarce mobile viewport to link to the page you are already on.
+    expect(shouldRenderBottomNav([{ ...bottomNavItems[0]!, available: true }])).toBe(false);
+  });
+
+  it('keeps Wishlist and Cart out until their routes exist', () => {
+    // Search joined the bar in Phase 3 because `/search` became real. Wishlist
+    // and Cart are Phase 4 and stay absent — the bar lists destinations, not
+    // intentions (D-15).
+    const labels = labelsOf(resolveNav(bottomNavItems, {}, false));
+
+    expect(labels).toContain('Search');
+    expect(labels).not.toContain('Wishlist');
+    expect(labels).not.toContain('Cart');
   });
 });

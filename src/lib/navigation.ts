@@ -24,6 +24,16 @@ import { isBuilt } from '@/lib/site';
 
 export type NavDataset = 'categories' | 'ageBands';
 
+/**
+ * Phase 3 note on `ageBands`.
+ *
+ * The requirement is deliberately **not** "age bands exist" but "age bands have
+ * products in them". Bands are configuration; assignments are a founder
+ * decision that has not been made, and five links to five empty pages is a dead
+ * control with a useful-looking label. `NavContext.hasAgeBands` is therefore
+ * supplied from `hasAgeAssignments()`, not from the band list.
+ */
+
 export type NavItem = {
   id: string;
   /** English label. All navigation chrome is English (D-02, §4.2). */
@@ -62,9 +72,10 @@ const SHOP: NavItem = {
   requiresRoute: '/products',
 };
 
-// `href` is the "browse everything" fallback these triggers use until Phase 2/3
-// replaces them with a real dropdown. They stay hidden until then regardless,
-// because their data requirement cannot be satisfied yet.
+// Phase 3 made this a real menu. `href` remains the "browse everything"
+// destination, which is what the trigger falls back to for a keyboard user who
+// activates it rather than opening the panel, and what it degrades to with no
+// JavaScript — so it is never a control that does nothing.
 const CATEGORIES: NavItem = {
   id: 'categories',
   label: 'Categories',

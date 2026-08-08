@@ -23,6 +23,7 @@ export const HOMEPAGE_SECTION_IDS = [
   'best-sellers',
   'collections',
   'new-arrivals',
+  'coming-soon',
   'offers',
   'why-renvura',
   'founder',
@@ -57,6 +58,10 @@ export const homepageSections: readonly HomepageSection[] = [
   { id: 'best-sellers', enabled: true, kind: 'merchandising' },
   { id: 'collections', enabled: true, kind: 'merchandising' },
   { id: 'new-arrivals', enabled: true, kind: 'merchandising' },
+  // Products the founder has selected but not yet priced. Deliberately last of
+  // the merchandising sections: what a customer can buy comes first, and a
+  // preview of what is coming is a footnote to that, not a headline.
+  { id: 'coming-soon', enabled: true, kind: 'merchandising' },
   // Requires a real, active campaign. Disabled until one exists (D-12).
   { id: 'offers', enabled: false, kind: 'merchandising' },
   { id: 'why-renvura', enabled: true, kind: 'trust' },

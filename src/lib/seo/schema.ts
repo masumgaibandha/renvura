@@ -1,3 +1,4 @@
+import { mayEmitProductSchema } from '@/lib/catalogue/demo';
 import { siteUrl } from '@/lib/env';
 import { siteConfig } from '@/lib/site';
 
@@ -17,6 +18,54 @@ import { siteConfig } from '@/lib/site';
  *  - `Article` / `FAQPage` — NOT emitted. No published articles, and the FAQ
  *    carries no real question-and-answer content yet.
  */
+/**
+ * `Product` + `Offer` markup for a single product.
+ *
+ * **Support is built here; it is never emitted for a demo record** (D-08, §5.5).
+ * `mayEmitProductSchema()` is the gate — the same one analytics uses — and it
+ * refuses demo products in any environment, anything not `active`, and anything
+ * without a real price. Returning `null` means the caller renders no script tag
+ * at all.
+ *
+ * Deliberately omits `aggregateRating` and `review`: those require genuine
+ * customer reviews, which arrive in Phase 12 and are never seeded (D-12).
+ * `availability` is derived from the stock policy rather than asserted.
+ */
+export function productSchema(product: {
+  slug?: string;
+  name?: string;
+  description?: string;
+  priceMinor?: number;
+  status?: string;
+  isDemo?: boolean;
+  images?: { url: string }[];
+  categoryLabel?: string;
+  inStock?: boolean;
+  availability?: string;
+}) {
+  if (!mayEmitProductSchema(product)) return null;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description,
+    category: product.categoryLabel,
+    image: (product.images ?? []).map((image) => `${siteUrl}${image.url}`),
+    url: `${siteUrl}/products/${product.slug}`,
+    offers: {
+      '@type': 'Offer',
+      url: `${siteUrl}/products/${product.slug}`,
+      priceCurrency: 'BDT',
+      price: ((product.priceMinor ?? 0) / 100).toFixed(2),
+      availability:
+        product.inStock === false
+          ? 'https://schema.org/OutOfStock'
+          : 'https://schema.org/InStock',
+    },
+  } as const;
+}
+
 export function organizationSchema() {
   return {
     '@context': 'https://schema.org',

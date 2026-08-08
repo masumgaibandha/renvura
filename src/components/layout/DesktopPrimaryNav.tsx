@@ -2,8 +2,10 @@
 
 import { usePathname } from 'next/navigation';
 import { FiChevronDown } from 'react-icons/fi';
+import { CategoryMenu } from '@/components/layout/CategoryMenu';
 import { AppLink } from '@/components/ui/AppLink';
 import { Container } from '@/components/ui/Container';
+import type { CategoryNode } from '@/lib/content/storefront';
 import type { ResolvedNavItem } from '@/lib/navigation';
 
 /**
@@ -13,15 +15,21 @@ import type { ResolvedNavItem } from '@/lib/navigation';
  * About. Items arrive already filtered by `resolveNav`, so this component never
  * decides availability itself.
  *
- * Items marked `hasDropdown` render a chevron and the ARIA a disclosure will
- * need, but no menu opens yet — the category and age datasets are Phase 2
- * decisions and must not be invented (§11.1.2). The trigger is shaped now so
- * Phase 2 adds a panel rather than restructuring the row.
+ * Phase 3 turned the `Categories` trigger into a real disclosure panel. Other
+ * `hasDropdown` items still render only the chevron and the ARIA a disclosure
+ * needs — "Shop by Age" has no product assignments behind it yet, so it is
+ * filtered out upstream rather than opened onto five empty pages.
  *
  * Active state is carried by `aria-current`, a weight change **and** a gold
  * underline, never by colour alone (§3.4).
  */
-export function DesktopPrimaryNav({ items }: { items: ResolvedNavItem[] }) {
+export function DesktopPrimaryNav({
+  items,
+  categories = [],
+}: {
+  items: ResolvedNavItem[];
+  categories?: CategoryNode[];
+}) {
   const pathname = usePathname();
 
   if (items.length === 0) return null;
@@ -47,6 +55,20 @@ export function DesktopPrimaryNav({ items }: { items: ResolvedNavItem[] }) {
                       ) : null}
                       <span className="sr-only">(coming soon)</span>
                     </span>
+                  </li>
+                );
+              }
+
+              // The one trigger with a real panel behind it.
+              if (item.id === 'categories' && categories.length > 0) {
+                return (
+                  <li key={item.id}>
+                    <CategoryMenu
+                      label={item.label}
+                      href={item.href}
+                      categories={categories}
+                      isActive={pathname.startsWith('/category')}
+                    />
                   </li>
                 );
               }

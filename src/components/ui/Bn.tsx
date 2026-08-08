@@ -23,7 +23,13 @@ export function Bn({
   className = '',
 }: {
   children: ReactNode;
-  as?: 'span' | 'p' | 'div' | 'li';
+  /**
+   * Headings are allowed because a Bangla section *heading* is one of the runs
+   * D-02 sanctions — the label on a product's Bangla explanation. `h1` is
+   * deliberately excluded: the page's one top-level heading is the English
+   * product name.
+   */
+  as?: 'span' | 'p' | 'div' | 'li' | 'h2' | 'h3';
   className?: string;
 }) {
   return (

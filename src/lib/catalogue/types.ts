@@ -30,6 +30,25 @@ export type StockPolicy = (typeof STOCK_POLICIES)[number];
 export const PRODUCT_TYPES = ['single', 'bundle'] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
+/**
+ * Catalogue availability — **orthogonal to `status`**, and deliberately so.
+ *
+ * `status` answers "is this record published?"; availability answers "can a
+ * customer buy it?". A product the founder has selected but not yet priced,
+ * imported or committed to is a real catalogue entry that is simply not for
+ * sale yet, and the honest way to model that is its own field:
+ *
+ *   available   — the normal state; price and purchase flow apply
+ *   coming-soon — selected and shown, but not orderable and **not priced**
+ *
+ * The alternative — a zero price, a zero stock count, or an `archived` status —
+ * would each encode the fact as a lie in a field that means something else, and
+ * every price, stock and sitemap rule downstream would have to special-case it.
+ * D-12 forbids the price version outright: `৳0` is not a price.
+ */
+export const CATALOGUE_AVAILABILITIES = ['available', 'coming-soon'] as const;
+export type CatalogueAvailability = (typeof CATALOGUE_AVAILABILITIES)[number];
+
 /** Derived where possible, never hand-typed (design direction §6.2). */
 export const PRODUCT_BADGES = ['new', 'bestseller', 'offer'] as const;
 export type ProductBadge = (typeof PRODUCT_BADGES)[number];

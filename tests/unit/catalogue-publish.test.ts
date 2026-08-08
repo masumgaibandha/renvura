@@ -176,7 +176,48 @@ describe('stock policy', () => {
   });
 });
 
+describe('catalogue availability', () => {
+  it('lets an available product publish exactly as before', () => {
+    expect(validateForPublish(publishable({ availability: 'available' })).ok).toBe(true);
+    // Absent means available — the field is defaulted, never guessed at.
+    expect(validateForPublish(publishable()).ok).toBe(true);
+  });
+
+  it('blocks a Coming Soon product from going live, with the real reason', () => {
+    const result = validateForPublish(publishable({ availability: 'coming-soon' }));
+
+    expect(result.ok).toBe(false);
+    expect(codesOf(result)).toContain('availabilityComingSoon');
+    expect(fieldsOf(result)).toContain('availability');
+  });
+
+  it('explains how to fix it rather than just refusing', () => {
+    expect(publishErrorMessage('availabilityComingSoon')).toMatch(/set a price/i);
+  });
+
+  it('reports the missing price alongside it, not instead of it', () => {
+    // A Coming Soon product has no price, so the checklist should say both
+    // things — the founder needs to do both to publish it.
+    const result = validateForPublish(
+      publishable({ availability: 'coming-soon', priceMinor: undefined }),
+    );
+
+    expect(codesOf(result)).toEqual(
+      expect.arrayContaining(['availabilityComingSoon', 'priceRequired']),
+    );
+  });
+});
+
 describe('purchasability', () => {
+  it('is false for a Coming Soon product, however well stocked', () => {
+    expect(
+      isPurchasable({ status: 'active', availability: 'coming-soon', stockPolicy: 'always-in-stock' }),
+    ).toBe(false);
+    expect(
+      isPurchasable({ status: 'active', availability: 'coming-soon', stockPolicy: 'track', stock: 99 }),
+    ).toBe(false);
+  });
+
   it('is false for anything not active', () => {
     expect(isPurchasable(publishable({ status: 'draft' }))).toBe(false);
     expect(isPurchasable(publishable({ status: 'archived' }))).toBe(false);

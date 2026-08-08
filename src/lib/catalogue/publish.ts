@@ -1,9 +1,11 @@
 import { validateAgainstProfile, type ComplianceInput, type ComplianceProfile } from '@/lib/catalogue/compliance';
+import { validatePricing } from '@/lib/catalogue/price';
 import {
   fail,
   ok,
   SKU_PATTERN,
   SLUG_PATTERN,
+  type CatalogueAvailability,
   type FieldIssue,
   type ProductStatus,
   type StockPolicy,
@@ -32,10 +34,13 @@ export type ProductImageInput = {
 
 export type PublishableProduct = {
   status?: ProductStatus;
+  availability?: CatalogueAvailability;
   name?: string;
   slug?: string;
   description?: string;
   priceMinor?: number;
+  /** The higher reference price, shown struck through. Optional. */
+  comparePriceMinor?: number;
   sku?: string;
   category?: unknown;
   images?: readonly ProductImageInput[] | null;
@@ -80,15 +85,30 @@ export function validateForPublish(
     issues.push({ field: 'description', code: 'descriptionRequired' });
   }
 
-  // "A real founder-supplied price" (§7.1). Zero is not a price, and a
-  // non-integer means someone passed rupees where poisha were expected.
-  if (typeof product.priceMinor !== 'number' || !Number.isFinite(product.priceMinor)) {
-    issues.push({ field: 'priceMinor', code: 'priceRequired' });
-  } else if (!Number.isInteger(product.priceMinor)) {
-    issues.push({ field: 'priceMinor', code: 'priceNotMinorUnits' });
-  } else if (product.priceMinor <= 0) {
-    issues.push({ field: 'priceMinor', code: 'priceMustBePositive' });
+  /**
+   * A coming-soon product cannot be published.
+   *
+   * Publishing means "this is on sale now", and there is no pre-order flow —
+   * cart and checkout arrive in Phase 4. Until then, a live product that cannot
+   * be bought is a dead control on the largest possible scale (§11.1.1), and it
+   * has no price, so every rule below would fail anyway with a misleading
+   * "add a price" checklist. Reporting the real reason once is more useful.
+   *
+   * The fix is a founder decision — price it and mark it available — not a
+   * validation bypass.
+   */
+  if (product.availability === 'coming-soon') {
+    issues.push({ field: 'availability', code: 'availabilityComingSoon' });
   }
+
+  // "A real founder-supplied price" (§7.1), plus the compare-price rules.
+  // Delegated so the seed, the publish gate and any future admin form share one
+  // definition of what a valid price pair is.
+  const pricing = validatePricing({
+    priceMinor: product.priceMinor,
+    comparePriceMinor: product.comparePriceMinor,
+  });
+  if (!pricing.ok) issues.push(...pricing.issues);
 
   if (!isNonEmpty(product.sku)) {
     issues.push({ field: 'sku', code: 'skuRequired' });
@@ -174,6 +194,7 @@ export function validateStockForPublish(product: PublishableProduct): FieldIssue
  */
 export function isPurchasable(product: PublishableProduct): boolean {
   if (product.status !== 'active') return false;
+  if (product.availability === 'coming-soon') return false;
 
   switch (product.stockPolicy) {
     case 'track':
@@ -192,9 +213,13 @@ export const PUBLISH_ERRORS: Record<string, string> = {
   slugRequired: 'Add a URL slug',
   slugInvalid: 'Use lowercase English letters, numbers and hyphens only',
   descriptionRequired: 'Add a description',
+  availabilityComingSoon:
+    'This product is marked Coming Soon. Set a price and change it to Available before publishing',
   priceRequired: 'Add a real price',
   priceNotMinorUnits: 'Price must be a whole number of poisha',
   priceMustBePositive: 'Price must be greater than zero',
+  comparePriceMustBePositive: 'The reference price must be greater than zero',
+  comparePriceBelowPrice: 'The reference price cannot be below the selling price',
   skuRequired: 'Add a SKU',
   skuInvalid: 'Use uppercase letters, numbers, hyphens and underscores only',
   categoryRequired: 'Choose a primary category',

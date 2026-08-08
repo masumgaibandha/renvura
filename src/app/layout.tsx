@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { DemoModeBanner } from '@/components/layout/DemoModeBanner';
 import { Footer } from '@/components/layout/Footer';
 import { Header } from '@/components/layout/Header';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { RouteProgress } from '@/components/layout/RouteProgress';
 import { Providers } from '@/components/providers';
 import { siteUrl } from '@/lib/env';
+import { demoModeEnabled } from '@/lib/catalogue/demo';
 import { fontVariables } from '@/lib/fonts';
 import {
   bottomNavItems,
@@ -46,7 +48,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           reserved here — otherwise it would sit on top of the footer. */}
       <body
         className={`flex min-h-dvh flex-col overflow-x-hidden bg-canvas text-ink ${
-          showBottomNav ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0' : ''
+          // 3.5rem tab height + the bar's 1px top border, plus the phone's safe
+          // area. calc() needs whitespace around `+`, written as underscores in
+          // a Tailwind arbitrary value — without them the whole declaration is
+          // invalid CSS and the fixed bar silently covers the end of the page.
+          showBottomNav
+            ? 'pb-[calc(3.5rem_+_1px_+_env(safe-area-inset-bottom))] md:pb-0'
+            : ''
         }`}
       >
         {/* Organization is the only structured data Phase 1 emits — every value
@@ -57,6 +65,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
 
         <Providers>
+          {/* D-08: demo mode is visibly labelled wherever it is on. */}
+          {demoModeEnabled() ? <DemoModeBanner /> : null}
           <RouteProgress />
           <a
             href="#main"

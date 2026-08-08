@@ -13,6 +13,7 @@ import {
   getAgeBands,
   getBestSellers,
   getCategoryTiles,
+  getComingSoonProducts,
   getCustomerReviews,
   getFeaturedProducts,
   getHelpfulArticles,
@@ -45,11 +46,12 @@ export async function generateMetadata(): Promise<Metadata> {
  * invented to fill the gap (D-12).
  */
 export default async function HomePage() {
-  const [categories, ageBands, featured, bestSellers, newArrivals, articles, reviews] =
+  const [categories, ageBands, featured, comingSoon, bestSellers, newArrivals, articles, reviews] =
     await Promise.all([
       getCategoryTiles(),
       getAgeBands(),
       getFeaturedProducts(),
+      getComingSoonProducts(),
       getBestSellers(),
       getNewArrivals(),
       getHelpfulArticles(),
@@ -57,7 +59,11 @@ export default async function HomePage() {
     ]);
 
   const hasMerchandising =
-    categories.length > 0 || ageBands.length > 0 || featured.length > 0 || newArrivals.length > 0;
+    categories.length > 0 ||
+    ageBands.length > 0 ||
+    featured.length > 0 ||
+    comingSoon.length > 0 ||
+    newArrivals.length > 0;
 
   const rendered: Record<HomepageSectionId, React.ReactNode> = {
     hero: <Hero />,
@@ -84,6 +90,20 @@ export default async function HomePage() {
         eyebrow="Just in"
         title="New arrivals"
         products={newArrivals}
+        viewAllHref="/products"
+      />
+    ),
+    /**
+     * A restrained preview of what the founder has selected but not yet
+     * priced. Same card, same grid — the cards carry their own Coming Soon
+     * marker, so nothing here needs a second explanation. Empty until such a
+     * product exists, like every other data-backed section.
+     */
+    'coming-soon': (
+      <ProductRail
+        eyebrow="Chosen, not yet priced"
+        title="Coming soon"
+        products={comingSoon}
         viewAllHref="/products"
       />
     ),

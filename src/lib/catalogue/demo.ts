@@ -110,9 +110,14 @@ export function mayEmitProductSchema(product: {
   status?: string;
   isDemo?: boolean;
   priceMinor?: number;
+  availability?: string;
 }): boolean {
   if (product.isDemo === true) return false;
   if (product.status !== 'active') return false;
+  // A coming-soon product is not on sale, so it has no `Offer` to describe and
+  // no `ViewContent` worth attributing. Emitting one would advertise a price
+  // and availability that do not exist.
+  if (product.availability === 'coming-soon') return false;
   // An Offer needs a real price; there is no such thing as a priceless offer.
   return typeof product.priceMinor === 'number' && product.priceMinor > 0;
 }

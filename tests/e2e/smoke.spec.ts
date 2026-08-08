@@ -92,10 +92,9 @@ test('there is no theme toggle and no language toggle', async ({ page }) => {
 });
 
 test('no link anywhere points at an unbuilt route', async ({ page }) => {
+  // `/search` left this list in Phase 3, when it became a real route.
   const unbuilt = [
-    '/products',
     '/collections',
-    '/search',
     '/offers',
     '/cart',
     '/checkout',
@@ -185,7 +184,7 @@ test('mobile menu opens, lists only built routes, and navigates', async ({ page 
 
   await page.getByRole('button', { name: 'Open menu' }).click();
 
-  const menu = page.getByRole('navigation', { name: 'Mobile' });
+  const menu = page.getByRole('navigation', { name: 'Mobile', exact: true });
   await expect(menu).toBeVisible();
 
   await menu.getByRole('link', { name: 'About', exact: true }).click();
@@ -207,8 +206,11 @@ test.describe('navigation', () => {
     const nav = page.getByRole('navigation', { name: 'Primary' });
     await expect(nav).toBeVisible();
     await expect(nav.getByRole('link', { name: 'About', exact: true })).toBeVisible();
+    // Shop went live in Phase 2C.
+    await expect(nav.getByRole('link', { name: 'Shop', exact: true })).toBeVisible();
 
-    for (const label of ['Shop', 'Categories', 'Shop by Age', 'Blog']) {
+    // Categories and Shop by Age are data-gated; Blog is Phase 9.
+    for (const label of ['Categories', 'Shop by Age', 'Blog']) {
       await expect(nav.getByRole('link', { name: label, exact: true })).toHaveCount(0);
     }
   });
@@ -230,16 +232,52 @@ test.describe('navigation', () => {
     await expect(header.getByRole('button', { name: 'Open menu' })).toBeVisible();
     await expect(header.getByRole('link', { name: /Renvura/ })).toBeVisible();
 
-    // Search (Phase 3) and cart (Phase 4) do not exist yet.
-    await expect(header.getByRole('link', { name: /search/i })).toHaveCount(0);
+    // Search became real in Phase 3 — on mobile it is an icon link to the
+    // results page rather than an inline field.
+    await expect(header.getByRole('link', { name: /search products/i })).toHaveAttribute(
+      'href',
+      '/search',
+    );
+    // Cart is Phase 4 and still absent.
     await expect(header.getByRole('link', { name: /^cart$/i })).toHaveCount(0);
   });
 
-  test('the mobile bottom tab bar is absent while only Home exists', async ({ page }) => {
+  test('the mobile bottom tab bar carries Home, Shop and Search, and nothing unbuilt', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 360, height: 780 });
     await page.goto('/');
 
-    await expect(page.getByRole('navigation', { name: 'Primary mobile' })).toHaveCount(0);
+    const bar = page.getByRole('navigation', { name: 'Primary mobile' });
+    await expect(bar).toBeVisible();
+    for (const label of ['Home', 'Shop', 'Search']) {
+      await expect(bar.getByRole('link', { name: label })).toBeVisible();
+    }
+
+    // Phase 4 destinations stay out until they exist.
+    for (const label of ['Wishlist', 'Cart']) {
+      await expect(bar.getByRole('link', { name: label })).toHaveCount(0);
+    }
+  });
+
+  test('the bottom tab bar never covers the end of the page', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/');
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+
+    const overlap = await page.evaluate(() => {
+      const bar = document.querySelector('nav[aria-label="Primary mobile"]');
+      const footer = document.querySelector('footer');
+      if (!bar || !footer) return null;
+
+      const barBox = bar.getBoundingClientRect();
+      const footerBox = footer.getBoundingClientRect();
+      // The reserved body padding must keep the footer clear of the fixed bar.
+      // 1px tolerance for sub-pixel rounding between rem padding and bar height.
+      return footerBox.bottom > barBox.top + 1;
+    });
+
+    expect(overlap).toBe(false);
   });
 
   test('the mobile drawer lists only built destinations', async ({ page }) => {
@@ -247,11 +285,12 @@ test.describe('navigation', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'Open menu' }).click();
 
-    const menu = page.getByRole('navigation', { name: 'Mobile' });
+    const menu = page.getByRole('navigation', { name: 'Mobile', exact: true });
     await expect(menu.getByRole('link', { name: 'About', exact: true })).toBeVisible();
     await expect(menu.getByRole('link', { name: 'Contact', exact: true })).toBeVisible();
+    await expect(menu.getByRole('link', { name: 'Shop', exact: true })).toBeVisible();
 
-    for (const label of ['Shop', 'Categories', 'Shop by Age', 'Blog', 'Account', 'Wishlist']) {
+    for (const label of ['Categories', 'Shop by Age', 'Blog', 'Account', 'Wishlist']) {
       await expect(menu.getByRole('link', { name: label, exact: true })).toHaveCount(0);
     }
   });
@@ -291,6 +330,232 @@ test.describe('navigation', () => {
         expect(overflows, `${path} scrolls horizontally at ${width}px`).toBe(false);
       }
     }
+  });
+});
+
+/**
+ * The shop, as a public visitor sees it.
+ *
+ * These runs have demo mode off, which is the production posture: the five
+ * protected demo products must not appear, and the page must still be a real,
+ * honest page rather than a broken one.
+ */
+test.describe('shop', () => {
+  test('/products resolves and renders a real page', async ({ page }) => {
+    const response = await page.goto('/products');
+
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('All products');
+  });
+
+  test('shows an honest empty state rather than fake products', async ({ page }) => {
+    await page.goto('/products');
+
+    await expect(page.getByText('The catalogue is still being prepared')).toBeVisible();
+
+    // Nothing invented while the catalogue is empty.
+    await expect(page.getByText(/৳/)).toHaveCount(0);
+    await expect(page.getByText(/coming soon/i)).toHaveCount(0);
+    await expect(page.getByText(/out of stock/i)).toHaveCount(0);
+    await expect(page.locator('img[alt*="Demo"]')).toHaveCount(0);
+  });
+
+  test('leaks no demo product or demo banner in public mode', async ({ page }) => {
+    await page.goto('/products');
+
+    await expect(page.getByText('Demo data')).toHaveCount(0);
+    for (const name of ['Rainbow Wooden Abacus', 'Toddler Montessori Busy Book', 'Interactive RC Ejection']) {
+      await expect(page.getByText(name)).toHaveCount(0);
+    }
+  });
+
+  test('never serves a reference-page screenshot as product media', async ({ page }) => {
+    for (const path of ['/', '/products']) {
+      await page.goto(path);
+      const sources = await page
+        .locator('img')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('src') ?? ''));
+
+      for (const src of sources) expect(src).not.toContain('reference-page');
+    }
+  });
+
+  test('stays out of the index while its catalogue is being prepared', async ({ page }) => {
+    await page.goto('/products');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+
+  test('is reachable from the header, drawer and bottom bar', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto('/');
+
+    await page.getByRole('navigation', { name: 'Primary mobile' }).getByRole('link', { name: 'Shop' }).click();
+    await expect(page).toHaveURL(/\/products$/);
+  });
+
+  test('shows no discount badge, rating or stock claim anywhere', async ({ page }) => {
+    // Two prices do not authorise promotional messaging (D-12, founder
+    // decision). This holds in public mode, where no product renders at all,
+    // and is the guard that catches a badge being added later.
+    await page.goto('/products');
+
+    // Anchored to badge-shaped text, not prose: the honest empty state
+    // legitimately contains the phrase "goes on sale".
+    for (const pattern of [/%\s*off/i, /save ৳/i, /^sale$/i, /limited offer/i, /hot deal/i]) {
+      await expect(page.getByText(pattern)).toHaveCount(0);
+    }
+  });
+
+  test('has no horizontal overflow at any supported width', async ({ page }) => {
+    for (const width of [360, 390, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/products');
+
+      const overflows = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      );
+      expect(overflows, `/products scrolls horizontally at ${width}px`).toBe(false);
+    }
+  });
+});
+
+/**
+ * Product detail, as a public visitor sees it — which is: not at all.
+ *
+ * This build is the production posture (demo mode hard-disabled), so every
+ * demo product URL must be a genuine 404 rather than a page that renders a
+ * synthetic product, a soft "unavailable" shell, or an internal error (D-08).
+ */
+test.describe('product detail in public mode', () => {
+  const demoSlugs = [
+    '7-in-1-wooden-montessori-learning-board',
+    'toddler-montessori-busy-book-and-travel-bag',
+    'rainbow-wooden-abacus-and-counting-stacker',
+    'smart-chopstick-and-clip-bead-math-set',
+    'interactive-rc-ejection-battle-cars',
+  ];
+
+  test('every demo product URL is a real 404', async ({ page }) => {
+    for (const slug of demoSlugs) {
+      const response = await page.goto(`/products/${slug}`);
+      expect(response?.status(), `/products/${slug} must not resolve publicly`).toBe(404);
+      await expect(page.getByText('This page could not be found')).toBeVisible();
+    }
+  });
+
+  test('an unknown slug is a real 404, not a blank product page', async ({ page }) => {
+    const response = await page.goto('/products/no-such-product');
+
+    expect(response?.status()).toBe(404);
+    await expect(page.getByText('This page could not be found')).toBeVisible();
+  });
+
+  test('leaks no product name, price or internal error on a 404', async ({ page }) => {
+    const response = await page.goto(`/products/${demoSlugs[0]}`);
+    const html = (await response?.text()) ?? '';
+
+    expect(html).not.toContain('Montessori');
+    expect(html).not.toContain('৳');
+    expect(html).not.toContain('MongoServerError');
+    expect(html).not.toContain('MONGODB_URI');
+  });
+
+  test('the retired abacus slug is gone, not silently redirected', async ({ request }) => {
+    const response = await request.get('/products/wooden-abacus-counting-stacker');
+    expect(response.status()).toBe(404);
+  });
+
+  test('no product page is ever advertised in the sitemap', async ({ request }) => {
+    const xml = await (await request.get('/sitemap.xml')).text();
+    for (const slug of demoSlugs) expect(xml).not.toContain(slug);
+  });
+});
+
+/**
+ * Phase 3 discovery, as a public visitor sees it.
+ *
+ * Demo mode is hard-disabled here, which is the production posture: search,
+ * filters and category browsing must all still be real, working pages that
+ * simply have nothing to show — never an error, and never a leak.
+ */
+test.describe('discovery in public mode', () => {
+  test('search resolves and prompts, with no results to leak', async ({ page }) => {
+    const response = await page.goto('/search?q=abacus');
+
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('abacus');
+    await expect(page.getByText(/nothing matched/i)).toBeVisible();
+
+    // Not one demo product, and no price of any kind.
+    await expect(page.getByText(/৳/)).toHaveCount(0);
+    for (const name of ['Montessori', 'Abacus &', 'Battle Cars']) {
+      await expect(page.getByText(name)).toHaveCount(0);
+    }
+  });
+
+  test('search survives hostile and malformed queries', async ({ page }) => {
+    for (const q of ['.*', '%00', '<script>alert(1)</script>', 'a'.repeat(500), '&&&']) {
+      const response = await page.goto(`/search?q=${encodeURIComponent(q)}`);
+      expect(response?.status(), q).toBe(200);
+    }
+
+    // Reflected input is escaped, never executed.
+    const html = (await (await page.goto('/search?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E'))?.text()) ?? '';
+    expect(html).not.toContain('<script>alert(1)</script>');
+  });
+
+  test('search is never indexed', async ({ page }) => {
+    await page.goto('/search?q=abacus');
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+
+  test('every demo category and age URL is a real 404', async ({ page }) => {
+    // The categories exist in the database, but demo mode is off, so they must
+    // not resolve publicly any more than the products do (D-08).
+    for (const path of [
+      '/category/learning-educational',
+      '/category/numbers-math',
+      '/category/toys-play',
+      '/age/3-5-years',
+      '/age/0-11-months',
+    ]) {
+      const response = await page.goto(path);
+      expect(response?.status(), `${path} must not resolve publicly`).toBe(404);
+    }
+  });
+
+  test('the shop handles junk query parameters without erroring', async ({ page }) => {
+    for (const query of [
+      '?sort=cheapest',
+      '?availability=in-stock',
+      '?category=../../etc/passwd',
+      '?category[]=x&sort[]=y',
+    ]) {
+      const response = await page.goto(`/products${query}`);
+      expect(response?.status(), query).toBe(200);
+      await expect(page.getByText('The catalogue is still being prepared')).toBeVisible();
+    }
+  });
+
+  test('advertises no category, age or search URL in the sitemap', async ({ request }) => {
+    const xml = await (await request.get('/sitemap.xml')).text();
+
+    expect(xml).not.toContain('/category/');
+    expect(xml).not.toContain('/age/');
+    expect(xml).not.toContain('/search');
+  });
+
+  test('the header search field is now a real, working control', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    // It was a disabled placeholder until Phase 3 built the route behind it.
+    await expect(page.locator('[aria-disabled="true"]')).toHaveCount(0);
+
+    await page.getByRole('searchbox', { name: /search products/i }).fill('wooden');
+    await page.getByRole('searchbox', { name: /search products/i }).press('Enter');
+
+    await expect(page).toHaveURL(/\/search\?q=wooden$/);
   });
 });
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { demoModeEnabled } from '@/lib/catalogue/demo';
 import { siteUrl } from '@/lib/env';
 import { siteConfig } from '@/lib/site';
 
@@ -31,13 +32,16 @@ export function buildMetadata({
   noindex = false,
 }: BuildMetadataOptions): Metadata {
   const url = absoluteUrl(path);
+  // While demo mode is on, the entire site emits `noindex, nofollow` — synthetic
+  // products must never be indexed anywhere (D-08). This overrides the caller.
+  const blockIndexing = noindex || demoModeEnabled();
 
   return {
     metadataBase: new URL(siteUrl),
     title,
     description,
     alternates: { canonical: url },
-    robots: noindex
+    robots: blockIndexing
       ? { index: false, follow: false, googleBot: { index: false, follow: false } }
       : { index: true, follow: true },
     openGraph: {

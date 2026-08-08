@@ -1,5 +1,6 @@
 import mongoose, { Schema, type InferSchemaType, type Model } from 'mongoose';
 import {
+  CATALOGUE_AVAILABILITIES,
   COMPLIANCE_FIELDS,
   EVIDENCE_SOURCE_TYPES,
   PRODUCT_BADGES,
@@ -258,6 +259,19 @@ const productSchema = new Schema(
     // --- Always required, even on a draft (§7.1) --------------------------
     status: { type: String, enum: PRODUCT_STATUSES, required: true, default: 'draft' },
     stockPolicy: { type: String, enum: STOCK_POLICIES, required: true, default: 'track' },
+    /**
+     * Whether a customer can buy this yet — separate from `status` (see
+     * `CATALOGUE_AVAILABILITIES`). Required with a default so no document can
+     * be ambiguous: a missing value would have to be guessed at every render.
+     * `coming-soon` products carry no price, and the storefront never invents
+     * one for them.
+     */
+    availability: {
+      type: String,
+      enum: CATALOGUE_AVAILABILITIES,
+      required: true,
+      default: 'available',
+    },
 
     // --- Required to publish, optional while drafting ----------------------
     name: { type: String, trim: true, maxlength: 250 },
@@ -385,8 +399,10 @@ productSchema.index(
   { unique: true, partialFilterExpression: { sku: { $type: 'string' } } },
 );
 
-// The base storefront listing: active, non-demo, newest first.
-productSchema.index({ status: 1, isDemo: 1, createdAt: -1 });
+// The base storefront listing: active, non-demo, newest first. Availability is
+// part of the key because every grid orders sellable products ahead of
+// coming-soon ones.
+productSchema.index({ status: 1, isDemo: 1, availability: 1, createdAt: -1 });
 // Category and collection listing pages.
 productSchema.index({ category: 1, status: 1 });
 productSchema.index({ collections: 1, status: 1 });

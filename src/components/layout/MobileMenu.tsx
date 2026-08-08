@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useId, useRef, useState } from 'react';
 import { FiChevronDown, FiMenu, FiPhone, FiX } from 'react-icons/fi';
 import { AppLink } from '@/components/ui/AppLink';
+import type { CategoryNode } from '@/lib/content/storefront';
 import type { ResolvedNavItem } from '@/lib/navigation';
 import { footerRoutesFor, siteConfig } from '@/lib/site';
 
@@ -21,7 +22,13 @@ import { footerRoutesFor, siteConfig } from '@/lib/site';
  * HeroUI supplies the trigger button; the panel is plain markup with Escape and
  * focus return. No drawer library is introduced (D-04).
  */
-export function MobileMenu({ items }: { items: ResolvedNavItem[] }) {
+export function MobileMenu({
+  items,
+  categories = [],
+}: {
+  items: ResolvedNavItem[];
+  categories?: CategoryNode[];
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -29,6 +36,16 @@ export function MobileMenu({ items }: { items: ResolvedNavItem[] }) {
 
   const shownHrefs = new Set(items.map((item) => item.href));
   const helpRoutes = footerRoutesFor('help').filter((route) => !shownHrefs.has(route.path));
+
+  /**
+   * The Categories entry becomes a flat, indented list rather than a nested
+   * accordion.
+   *
+   * Five shelves fit on one phone screen. An accordion would add a tap, a
+   * state machine and an animation to reveal three links — cost without
+   * benefit at this catalogue size (§21).
+   */
+  const showCategories = categories.length > 0;
 
   useEffect(() => {
     if (!open) return;
@@ -74,7 +91,47 @@ export function MobileMenu({ items }: { items: ResolvedNavItem[] }) {
         <nav aria-label="Mobile" className="p-2 pb-4">
           {items.length > 0 ? (
             <ul className="flex flex-col">
-              {items.map((item) => (
+              {items.map((item) => {
+                // Categories is not a link on mobile — it labels the shelf list
+                // directly below it, so tapping the word would navigate past the
+                // very thing it introduces.
+                if (item.id === 'categories' && showCategories) {
+                  return (
+                    <li key={item.id}>
+                      <p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                        {item.label}
+                      </p>
+                      <ul className="flex flex-col">
+                        {categories.flatMap((category) => [
+                          <li key={category.slug}>
+                            <AppLink
+                              href={category.href}
+                              onClick={() => setOpen(false)}
+                              aria-current={pathname === category.href ? 'page' : undefined}
+                              className={linkClass(pathname === category.href)}
+                            >
+                              {category.name}
+                            </AppLink>
+                          </li>,
+                          ...category.children.map((child) => (
+                            <li key={child.slug}>
+                              <AppLink
+                                href={child.href}
+                                onClick={() => setOpen(false)}
+                                aria-current={pathname === child.href ? 'page' : undefined}
+                                className={`${linkClass(pathname === child.href)} pl-8 text-sm`}
+                              >
+                                {child.name}
+                              </AppLink>
+                            </li>
+                          )),
+                        ])}
+                      </ul>
+                    </li>
+                  );
+                }
+
+                return (
                 <li key={item.id}>
                   {item.available ? (
                     <AppLink
@@ -100,7 +157,8 @@ export function MobileMenu({ items }: { items: ResolvedNavItem[] }) {
                     </span>
                   )}
                 </li>
-              ))}
+                );
+              })}
             </ul>
           ) : null}
 

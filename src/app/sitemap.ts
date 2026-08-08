@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { demoModeEnabled } from '@/lib/catalogue/demo';
 import { absoluteUrl } from '@/lib/seo/metadata';
 import { sitemapRoutes } from '@/lib/site';
 
@@ -11,6 +12,9 @@ import { sitemapRoutes } from '@/lib/site';
  * separately emit `noindex, nofollow`.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
+  // While demo mode is on the whole site is excluded from the sitemap (D-08).
+  if (demoModeEnabled()) return [];
+
   const lastModified = new Date();
 
   return sitemapRoutes.map((route) => ({
